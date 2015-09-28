@@ -17,5 +17,6 @@ dependencies {
     // 'test.useTestNG()' to your build script.
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-junit:2.0.0.0'
+    testCompile 'com.h2database:h2:1.4.189'
 
 }

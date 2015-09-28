@@ -2,8 +2,6 @@ package cyeagy.dorm;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.lang.reflect.Field;
 import java.sql.Date;
@@ -14,182 +12,128 @@ import java.util.List;
 import java.util.stream.Collector;
 import java.util.stream.IntStream;
 
-import static com.google.common.base.CaseFormat.LOWER_UNDERSCORE;
-import static com.google.common.base.CaseFormat.UPPER_CAMEL;
 import static java.util.stream.Collectors.joining;
 
 public class SqlGenerator {
-    public String generateSelectSql(Object bean) throws IllegalAccessException {
-        TableData table = TableData.analyze(bean);
-        return formatSelect(table.columnsWithPrimaryKey(), table.tableName, table.primaryKey, table.primaryKeyValue);
+    private static final List<Class<?>> QUOTED_CLASSES = Lists.newArrayList(String.class, Timestamp.class, Date.class, Time.class);
+    private static final Collector<CharSequence, ?, String> COMMA_JOIN = joining(", ");
+
+    public String generateSelectSql(TableData table, Object bean) throws IllegalAccessException {
+        return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), table.getPrimaryKey().getName(), readFieldValue(bean, table.getPrimaryKey()));
     }
 
-    public String generateSelectSqlTemplate(Class<?> clazz) throws IllegalAccessException {
-        TableData table = TableData.analyze(clazz);
-        return formatSelect(table.columnsWithPrimaryKey(), table.tableName, table.primaryKey, "?");
+    public String generateSelectSqlTemplate(TableData table) {
+        return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), table.getPrimaryKey().getName(), "?");
     }
 
-    public String generateSelectSqlTemplateNamed(Class<?> clazz) throws IllegalAccessException {
-        TableData table = TableData.analyze(clazz);
-        return formatSelect(table.columnsWithPrimaryKey(), table.tableName, table.primaryKey, ":" + table.primaryKey);
+    public String generateSelectSqlTemplateNamed(TableData table) {
+        final String pk = table.getPrimaryKey().getName();
+        return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), pk, ":" + pk);
     }
 
     private String formatSelect(String columns, String tableName, String primaryKey, String primaryKeyValue){
         return String.format("SELECT %s FROM %s WHERE %s = %s", columns, tableName, primaryKey, primaryKeyValue);
     }
 
-    public String generateInsertSql(Object bean) throws IllegalAccessException {
-        TableData table = TableData.analyze(bean);
-        return formatInsert(table.tableName, table.columns(), table.columnValues());
+    public String generateInsertSql(TableData table, Object bean) throws IllegalAccessException {
+        return formatInsert(table.getTableName(), columns(table), columnValues(table, bean));
     }
 
-    public String generateInsertSqlTemplate(Class<?> clazz) throws IllegalAccessException {
-        TableData table = TableData.analyze(clazz);
-        return formatInsert(table.tableName, table.columns(), table.columnsIndexParams());
+    public String generateInsertSqlTemplate(TableData table) {
+        return formatInsert(table.getTableName(), columns(table), columnsIndexParams(table.getColumns().size()));
     }
 
-    public String generateInsertSqlTemplateNamed(Class<?> clazz) throws IllegalAccessException {
-        TableData table = TableData.analyze(clazz);
-        return formatInsert(table.tableName, table.columns(), table.columnsNamedParams());
+    public String generateInsertSqlTemplateNamed(TableData table) {
+        return formatInsert(table.getTableName(), columns(table), columnsNamedParams(table));
     }
 
     private String formatInsert(String tableName, String columns, String values){
         return String.format("INSERT INTO %s (%s) VALUES (%s)", tableName, columns, values);
     }
 
-    public String generateUpdateSql(Object bean) throws IllegalAccessException {
-        TableData table = TableData.analyze(bean);
-        return formatUpdate(table.tableName, table.columnsAndValues(), table.primaryKey, table.primaryKeyValue);
+    public String generateUpdateSql(TableData table, Object bean) throws IllegalAccessException {
+        return formatUpdate(table.getTableName(), columnsAndValues(table, bean), table.getPrimaryKey().getName(), readFieldValue(bean, table.getPrimaryKey()));
     }
 
-    public String generateUpdateSqlTemplate(Class<?> clazz) throws IllegalAccessException {
-        TableData table = TableData.analyze(clazz);
-        return formatUpdate(table.tableName, table.columnsWithIndexParams(), table.primaryKey, "?");
+    public String generateUpdateSqlTemplate(TableData table) {
+        return formatUpdate(table.getTableName(), columnsWithIndexParams(table), table.getPrimaryKey().getName(), "?");
     }
 
-    public String generateUpdateSqlTemplateNamed(Class<?> clazz) throws IllegalAccessException {
-        TableData table = TableData.analyze(clazz);
-        return formatUpdate(table.tableName, table.columnsWithNamedParams(), table.primaryKey, ":" + table.primaryKey);
+    public String generateUpdateSqlTemplateNamed(TableData table) {
+        final String pk = table.getPrimaryKey().getName();
+        return formatUpdate(table.getTableName(), columnsWithNamedParams(table), pk, ":" + pk);
     }
 
     private String formatUpdate(String tableName, String columnsAndValues, String primaryKey, String primaryKeyValue){
         return String.format("UPDATE %s SET %s WHERE %s = %s", tableName, columnsAndValues, primaryKey, primaryKeyValue);
     }
 
-    public String generateDeleteSql(Object bean) throws IllegalAccessException {
-        TableData table = TableData.analyze(bean);
-        return formatDelete(table.tableName, table.primaryKey, table.primaryKeyValue);
+    public String generateDeleteSql(TableData table, Object bean) throws IllegalAccessException {
+        return formatDelete(table.getTableName(), table.getPrimaryKey().getName(), readFieldValue(bean, table.getPrimaryKey()));
     }
 
-    public String generateDeleteSqlTemplate(Class<?> clazz) throws IllegalAccessException {
-        TableData table = TableData.analyze(clazz);
-        return formatDelete(table.tableName, table.primaryKey, "?");
+    public String generateDeleteSqlTemplate(TableData table) {
+        return formatDelete(table.getTableName(), table.getPrimaryKey().getName(), "?");
     }
 
-    public String generateDeleteSqlTemplateNamed(Class<?> clazz) throws IllegalAccessException {
-        TableData table = TableData.analyze(clazz);
-        return formatDelete(table.tableName, table.primaryKey, ":" + table.primaryKey);
+    public String generateDeleteSqlTemplateNamed(TableData table) {
+        final String pk = table.getPrimaryKey().getName();
+        return formatDelete(table.getTableName(), pk, ":" + pk);
     }
 
     private String formatDelete(String tableName, String primaryKey, String primaryKeyValue){
         return String.format("DELETE FROM %s WHERE %s = %s", tableName, primaryKey, primaryKeyValue);
     }
 
-    private static class TableData{
-        private static final List<Class<?>> QUOTED_CLASSES = Lists.newArrayList(String.class, Timestamp.class, Date.class, Time.class);
-        private static final Collector<CharSequence, ?, String> COMMA_JOIN = joining(", ");
+    private String columns(TableData table) {
+        return table.getColumns().stream().map(Field::getName).collect(COMMA_JOIN);
+    }
 
-        private final String tableName;
-        private final String primaryKey;
-        private final String primaryKeyValue;
-        private final List<Pair<String, String>> columnData;//excluding PK
+    private String columnsWithPrimaryKey(TableData table) {
+        return table.getPrimaryKey().getName() + ", " + columns(table);
+    }
 
-        private TableData(String tableName, String primaryKey, String primaryKeyValue, List<Pair<String, String>> columnData) {
-            this.tableName = tableName;
-            this.primaryKey = primaryKey;
-            this.primaryKeyValue = primaryKeyValue;
-            this.columnData = columnData;
+    private String columnValues(TableData table, Object bean) throws IllegalAccessException {
+        final List<String> vals = new ArrayList<>(table.getColumns().size());
+        for (Field column : table.getColumns()) {
+            vals.add(readFieldValue(bean, column));
         }
+        return vals.stream().collect(COMMA_JOIN);
+    }
 
-        private static TableData analyze(Object bean) throws IllegalAccessException {
-            final Class<?> clazz = bean.getClass();
-            final String tableName = getTableName(clazz);
-            final Field[] fields = clazz.getDeclaredFields();
-            final List<Pair<String, String>> columns = new ArrayList<>(fields.length);
-            String primaryKey = null;
-            String primaryKeyVal = null;
-            for (Field field : fields) {
-                if(field.isAnnotationPresent(Id.class)){
-                    primaryKey = field.getName();
-                    primaryKeyVal = readFieldValue(bean, field);
-                } else {
-                    columns.add(new ImmutablePair<>(field.getName(), readFieldValue(bean, field)));
-                }
-            }
-            return new TableData(tableName, primaryKey, primaryKeyVal, columns);
+    private String columnsAndValues(TableData table, Object bean) throws IllegalAccessException {
+        final List<String> vals = new ArrayList<>(table.getColumns().size());
+        for (Field column : table.getColumns()) {
+            vals.add(column.getName() + " = " + readFieldValue(bean, column));
         }
+        return vals.stream().collect(COMMA_JOIN);
+    }
 
-        private static TableData analyze(Class<?> clazz){
-            final String tableName = getTableName(clazz);
-            final Field[] fields = clazz.getDeclaredFields();
-            final List<Pair<String, String>> columns = new ArrayList<>(fields.length);
-            String primaryKey = null;
-            for (Field field : fields) {
-                if(field.isAnnotationPresent(Id.class)){
-                    primaryKey = field.getName();
-                } else {
-                    columns.add(new ImmutablePair<>(field.getName(), null));
-                }
-            }
-            return new TableData(tableName, primaryKey, null, columns);
-        }
+    private String columnsNamedParams(TableData table) {
+        return table.getColumns().stream().map(f -> ":" + f.getName()).collect(COMMA_JOIN);
+    }
 
-        private static String readFieldValue(Object bean, Field field) throws IllegalAccessException {
-            Object o = FieldUtils.readField(field, bean, true);
-            if(o == null){
-                return null;
-            }
-            String val = o.toString();
-            if(QUOTED_CLASSES.contains(field.getType())){
-                val = "'" + val + "'";
-            }
-            return val;
-        }
+    private String columnsWithIndexParams(TableData table) {
+        return table.getColumns().stream().map(f -> f.getName() + " = ?").collect(COMMA_JOIN);
+    }
 
-        private static String getTableName(Class<?> beanClass){
-            return UPPER_CAMEL.to(LOWER_UNDERSCORE, beanClass.getSimpleName());
-        }
+    private String columnsWithNamedParams(TableData table) {
+        return table.getColumns().stream().map(f -> f.getName() + " = :" + f.getName()).collect(COMMA_JOIN);
+    }
 
-        public String columns() {
-            return columnData.stream().map(Pair::getLeft).collect(COMMA_JOIN);
-        }
+    private String columnsIndexParams(int size) {
+        return IntStream.range(0, size).mapToObj(i -> "?").collect(COMMA_JOIN);
+    }
 
-        public String columnsWithPrimaryKey() {
-            return primaryKey + ", " + columnData.stream().map(Pair::getLeft).collect(COMMA_JOIN);
+    private String readFieldValue(Object bean, Field field) throws IllegalAccessException {
+        Object o = FieldUtils.readField(field, bean, true);
+        if(o == null){
+            return null;
         }
-
-        public String columnValues() {
-            return columnData.stream().map(Pair::getRight).collect(COMMA_JOIN);
+        String val = o.toString();
+        if(QUOTED_CLASSES.contains(field.getType())){
+            val = "'" + val + "'";
         }
-
-        public String columnsAndValues() {
-            return columnData.stream().map(p -> p.getLeft() + " = " + p.getRight()).collect(COMMA_JOIN);
-        }
-
-        public String columnsNamedParams() {
-            return columnData.stream().map(p -> ":" + p.getLeft()).collect(COMMA_JOIN);
-        }
-
-        public String columnsWithIndexParams() {
-            return columnData.stream().map(p -> p.getLeft() + " = ?").collect(COMMA_JOIN);
-        }
-
-        public String columnsWithNamedParams() {
-            return columnData.stream().map(p -> p.getLeft() + " = :" + p.getLeft()).collect(COMMA_JOIN);
-        }
-
-        public String columnsIndexParams() {
-            return IntStream.range(0, columnData.size()).mapToObj(i -> "?").collect(COMMA_JOIN);
-        }
+        return val;
     }
 }
