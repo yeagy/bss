@@ -9,7 +9,7 @@ public class TestBean {
     private String some_string;
     private Timestamp some_dtm;
 
-    public TestBean() { }
+    private TestBean() { }
 
     public TestBean(Long test_key, long some_long, int some_int, String some_string, Timestamp some_dtm) {
         this.test_key = test_key;

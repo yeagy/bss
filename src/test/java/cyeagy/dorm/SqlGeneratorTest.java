@@ -38,6 +38,22 @@ public class SqlGeneratorTest {
     }
 
     @Test
+    public void testGenerateBulkSelectSqlTemplate() throws Exception {
+        String control = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key = ANY (? :: BIGINT[])";
+        TableData tableData = TableData.analyze(TestBean.class);
+        String select = GENERATOR.generateBulkSelectSqlTemplate(tableData);
+        assertThat(select, equalTo(control));
+    }
+
+    @Test
+    public void testGenerateBulkSelectSqlTemplateNamed() throws Exception {
+        String control = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key = ANY (:test_key :: BIGINT[])";
+        TableData tableData = TableData.analyze(TestBean.class);
+        String select = GENERATOR.generateBulkSelectSqlTemplateNamed(tableData);
+        assertThat(select, equalTo(control));
+    }
+
+    @Test
     public void testGenerateInsertSql() throws Exception {
         Timestamp now = Timestamp.from(Instant.now());
         TestBean testBean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now);

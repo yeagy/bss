@@ -1,5 +1,6 @@
 package cyeagy.dorm;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.reflect.FieldUtils;
 
@@ -9,14 +10,23 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.joining;
 
 public class SqlGenerator {
+    public static final Map<Class<?>, String> CLASS_TYPE_STRING;
     private static final List<Class<?>> QUOTED_CLASSES = Lists.newArrayList(String.class, Timestamp.class, Date.class, Time.class);
     private static final Collector<CharSequence, ?, String> COMMA_JOIN = joining(", ");
+
+    static{
+        CLASS_TYPE_STRING = ImmutableMap.<Class<?>, String>builder()
+                .put(Long.class, "BIGINT")
+                .put(Long.TYPE, "BIGINT")
+                .build();
+    }
 
     public String generateSelectSql(TableData table, Object bean) throws IllegalAccessException {
         return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), table.getPrimaryKey().getName(), readFieldValue(bean, table.getPrimaryKey()));
@@ -33,6 +43,21 @@ public class SqlGenerator {
 
     private String formatSelect(String columns, String tableName, String primaryKey, String primaryKeyValue){
         return String.format("SELECT %s FROM %s WHERE %s = %s", columns, tableName, primaryKey, primaryKeyValue);
+    }
+
+    public String generateBulkSelectSqlTemplate(TableData table) {
+        final String type = CLASS_TYPE_STRING.get(table.getPrimaryKey().getType());
+        return formatBulkSelect(columnsWithPrimaryKey(table), table.getTableName(), table.getPrimaryKey().getName(), "?", type);
+    }
+
+    public String generateBulkSelectSqlTemplateNamed(TableData table) {
+        final String pk = table.getPrimaryKey().getName();
+        final String type = CLASS_TYPE_STRING.get(table.getPrimaryKey().getType());
+        return formatBulkSelect(columnsWithPrimaryKey(table), table.getTableName(), pk, ":" + pk, type);
+    }
+
+    private String formatBulkSelect(String columns, String tableName, String primaryKey, String primaryKeyValue, String arrayType){
+        return String.format("SELECT %s FROM %s WHERE %s = ANY (%s :: %s[])", columns, tableName, primaryKey, primaryKeyValue, arrayType);
     }
 
     public String generateInsertSql(TableData table, Object bean) throws IllegalAccessException {
