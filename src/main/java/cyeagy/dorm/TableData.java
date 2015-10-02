@@ -1,5 +1,7 @@
 package cyeagy.dorm;
 
+import com.google.common.base.Strings;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +34,10 @@ public class TableData {
     }
 
     public static TableData analyze(Class<?> clazz){
+        return analyze(clazz, false);
+    }
+
+    public static TableData analyze(Class<?> clazz, boolean forceAccessible){
         final String tableName = determineTableName(clazz);
         final Field[] fields = clazz.getDeclaredFields();
         final List<Field> columns = new ArrayList<>(fields.length);
@@ -42,6 +48,9 @@ public class TableData {
             } else {
                 columns.add(field);
             }
+            if(forceAccessible){
+                ReflectUtil.setAccessible(field);
+            }
         }
         if(primaryKey == null){
             primaryKey = fields[0];
@@ -50,7 +59,19 @@ public class TableData {
         return new TableData(tableName, primaryKey, columns);
     }
 
-    private static String determineTableName(Class<?> beanClass){
-        return UPPER_CAMEL.to(LOWER_UNDERSCORE, beanClass.getSimpleName());
+    private static String determineTableName(Class<?> clazz){
+        final Table annotation = clazz.getDeclaredAnnotation(Table.class);
+        if(annotation != null){
+            if(!Strings.isNullOrEmpty(annotation.schema())){
+                return annotation.schema() + "." + annotation.name();
+            }
+            return annotation.name();
+        }
+        return UPPER_CAMEL.to(LOWER_UNDERSCORE, clazz.getSimpleName());
+    }
+
+    public static String getColumnName(Field field) {
+        final Column annotation = field.getDeclaredAnnotation(Column.class);
+        return annotation == null ? field.getName() : annotation.name();
     }
 }

@@ -10,14 +10,15 @@ import static org.junit.Assert.assertThat;
 
 public class SqlGeneratorTest {
     private static final SqlGenerator GENERATOR = new SqlGenerator();
-    
+    private static final SqlGenerator.Extras EXTRAS = GENERATOR.new Extras();
+
     @Test
     public void testGenerateSelectSql() throws Exception {
         TestBean testBean = new TestBean(999l, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()));
         String control = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key = %s";
         control = String.format(control, testBean.getTest_key());
         TableData tableData = TableData.analyze(TestBean.class);
-        String select = GENERATOR.generateSelectSql(tableData, testBean);
+        String select = EXTRAS.generateSelectSql(tableData, testBean);
         assertThat(select, equalTo(control));
     }
 
@@ -60,7 +61,7 @@ public class SqlGeneratorTest {
         String control = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm) VALUES (%s, %s, '%s', '%s')";
         control = String.format(control, testBean.getSome_long(), testBean.getSome_int(), testBean.getSome_string(), testBean.getSome_dtm());
         TableData tableData = TableData.analyze(TestBean.class);
-        String insert = GENERATOR.generateInsertSql(tableData, testBean);
+        String insert = EXTRAS.generateInsertSql(tableData, testBean);
         assertThat(insert, equalTo(control));
     }
 
@@ -87,7 +88,7 @@ public class SqlGeneratorTest {
         String control = "UPDATE test_bean SET some_long = %s, some_int = %s, some_string = '%s', some_dtm = '%s' WHERE test_key = %s";
         control = String.format(control, testBean.getSome_long(), testBean.getSome_int(), testBean.getSome_string(), testBean.getSome_dtm(), testBean.getTest_key());
         TableData tableData = TableData.analyze(TestBean.class);
-        String update = GENERATOR.generateUpdateSql(tableData, testBean);
+        String update = EXTRAS.generateUpdateSql(tableData, testBean);
         assertThat(update, equalTo(control));
     }
 
@@ -113,7 +114,7 @@ public class SqlGeneratorTest {
         String control = "DELETE FROM test_bean WHERE test_key = %s";
         control = String.format(control, testBean.getTest_key());
         TableData tableData = TableData.analyze(TestBean.class);
-        String delete = GENERATOR.generateDeleteSql(tableData, testBean);
+        String delete = EXTRAS.generateDeleteSql(tableData, testBean);
         assertThat(delete, equalTo(control));
     }
 
@@ -132,5 +133,4 @@ public class SqlGeneratorTest {
         String delete = GENERATOR.generateDeleteSqlTemplateNamed(tableData);
         assertThat(delete, equalTo(control));
     }
-
 }
