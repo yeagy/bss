@@ -1,7 +1,5 @@
 package cyeagy.dorm;
 
-import com.google.common.base.Strings;
-
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,16 +60,16 @@ public class TableData {
     private static String determineTableName(Class<?> clazz){
         final Table annotation = clazz.getDeclaredAnnotation(Table.class);
         if(annotation != null){
-            if(!Strings.isNullOrEmpty(annotation.schema())){
-                return annotation.schema() + "." + annotation.name();
+            if(annotation.schema() == null || annotation.schema().isEmpty()){
+                return annotation.name();
             }
-            return annotation.name();
+            return annotation.schema() + "." + annotation.name();
         }
         return UPPER_CAMEL.to(LOWER_UNDERSCORE, clazz.getSimpleName());
     }
 
     public static String getColumnName(Field field) {
         final Column annotation = field.getDeclaredAnnotation(Column.class);
-        return annotation == null ? field.getName() : annotation.name();
+        return annotation == null ? UPPER_CAMEL.to(LOWER_UNDERSCORE, field.getName()) : annotation.name();
     }
 }

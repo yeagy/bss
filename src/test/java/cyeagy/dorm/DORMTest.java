@@ -40,6 +40,26 @@ public class DORMTest {
     }
 
     @Test
+    public void testFull() throws Exception {
+        TestBean bean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()));
+        TestBean result = DORM.insert(connection, bean);
+        assertNotNull(result.getTestKey());
+
+        TestBean readBean = DORM.select(connection, result.getTestKey(), TestBean.class);
+        assertThat(readBean.getSomeString(), equalTo(bean.getSomeString()));
+
+        DORM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), bean.getSomeInt(), "changed string", bean.getSomeDtm()));
+
+        readBean = DORM.select(connection, result.getTestKey(), TestBean.class);
+        assertThat(bean.getSomeString(), not(equalTo(readBean.getSomeString())));
+
+        DORM.delete(connection, result.getTestKey(), TestBean.class);
+
+        readBean = DORM.select(connection, result.getTestKey(), TestBean.class);
+        assertNull(readBean);
+    }
+
+    @Test
     public void testInsert() throws Exception {
         Timestamp now = Timestamp.from(Instant.now());
         {
@@ -47,12 +67,12 @@ public class DORMTest {
             TestBean result = DORM.insert(connection, testBean);
             assertNotNull(result);
             assertThat(result, is(not(testBean)));
-            assertNotNull(result.getTest_key());
-            assertThat(result.getTest_key(), is(not(0l)));
-            assertThat(result.getSome_long(), equalTo(testBean.getSome_long()));
-            assertThat(result.getSome_int(), equalTo(testBean.getSome_int()));
-            assertThat(result.getSome_string(), equalTo(testBean.getSome_string()));
-            assertThat(result.getSome_dtm(), equalTo(testBean.getSome_dtm()));
+            assertNotNull(result.getTestKey());
+            assertThat(result.getTestKey(), is(not(0l)));
+            assertThat(result.getSomeLong(), equalTo(testBean.getSomeLong()));
+            assertThat(result.getSomeInt(), equalTo(testBean.getSomeInt()));
+            assertThat(result.getSomeString(), equalTo(testBean.getSomeString()));
+            assertThat(result.getSomeDtm(), equalTo(testBean.getSomeDtm()));
         }
         {
             final AnnotatedTestBean testbean = new AnnotatedTestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now);
@@ -76,21 +96,21 @@ public class DORMTest {
 
             final TestBean preSelect = DORM.select(connection, 4l, TestBean.class);
             assertNotNull(preSelect);
-            assertThat(preSelect.getTest_key(), equalTo(testBean.getTest_key()));
-            assertThat(preSelect.getSome_long(), not(equalTo(testBean.getSome_long())));
-            assertThat(preSelect.getSome_int(), not(testBean.getSome_int()));
-            assertThat(preSelect.getSome_string(), not(testBean.getSome_string()));
-            assertThat(preSelect.getSome_dtm(), not(testBean.getSome_dtm()));
+            assertThat(preSelect.getTestKey(), equalTo(testBean.getTestKey()));
+            assertThat(preSelect.getSomeLong(), not(equalTo(testBean.getSomeLong())));
+            assertThat(preSelect.getSomeInt(), not(testBean.getSomeInt()));
+            assertThat(preSelect.getSomeString(), not(testBean.getSomeString()));
+            assertThat(preSelect.getSomeDtm(), not(testBean.getSomeDtm()));
 
             DORM.update(connection, testBean);
 
             final TestBean select = DORM.select(connection, 4l, TestBean.class);
             assertNotNull(select);
-            assertThat(select.getTest_key(), equalTo(testBean.getTest_key()));
-            assertThat(select.getSome_long(), equalTo(testBean.getSome_long()));
-            assertThat(select.getSome_int(), equalTo(testBean.getSome_int()));
-            assertThat(select.getSome_string(), equalTo(testBean.getSome_string()));
-            assertThat(select.getSome_dtm(), equalTo(testBean.getSome_dtm()));
+            assertThat(select.getTestKey(), equalTo(testBean.getTestKey()));
+            assertThat(select.getSomeLong(), equalTo(testBean.getSomeLong()));
+            assertThat(select.getSomeInt(), equalTo(testBean.getSomeInt()));
+            assertThat(select.getSomeString(), equalTo(testBean.getSomeString()));
+            assertThat(select.getSomeDtm(), equalTo(testBean.getSomeDtm()));
         }
         {
             AnnotatedTestBean testBean = new AnnotatedTestBean(5l, Long.MAX_VALUE, Integer.MAX_VALUE, "FOURTH", now);
@@ -120,7 +140,7 @@ public class DORMTest {
         {
             final TestBean result = DORM.select(connection, 1l, TestBean.class);
             assertNotNull(result);
-            assertThat(result.getTest_key(), equalTo(1l));
+            assertThat(result.getTestKey(), equalTo(1l));
         }
         {
             final AnnotatedTestBean result = DORM.select(connection, 1l, AnnotatedTestBean.class);
@@ -137,7 +157,7 @@ public class DORMTest {
         assertNotNull(results);
         assertThat(results.size(), equalTo(keys.size()));
         for (TestBean result : results) {
-            assertThat(keys, contains(result.getTest_key()));
+            assertThat(keys, contains(result.getTestKey()));
         }
     }
 
@@ -147,7 +167,7 @@ public class DORMTest {
             final long key = 1;
             final TestBean preSelect = DORM.select(connection, key, TestBean.class);
             assertNotNull(preSelect);
-            assertThat(preSelect.getTest_key(), equalTo(key));
+            assertThat(preSelect.getTestKey(), equalTo(key));
 
             DORM.delete(connection, key, TestBean.class);
 

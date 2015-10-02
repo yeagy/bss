@@ -4,9 +4,6 @@ import java.sql.Timestamp;
 
 @Table(name = "test_bean")
 public class AnnotatedTestBean {
-    @Id
-    @Column(name="test_key")
-    private Long legacyKey;
     @Column(name="some_long")
     private long legacyLong;
     @Column(name="some_int")
@@ -15,6 +12,9 @@ public class AnnotatedTestBean {
     private String legacyString;
     @Column(name="some_dtm")
     private Timestamp legacyTimestamp;
+    @Id
+    @Column(name="test_key")
+    private Long legacyKey;
 
     private AnnotatedTestBean() {}
 

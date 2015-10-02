@@ -3,39 +3,39 @@ package cyeagy.dorm;
 import java.sql.Timestamp;
 
 public class TestBean {
-    private Long test_key;
-    private long some_long;
-    private int some_int;
-    private String some_string;
-    private Timestamp some_dtm;
+    private Long testKey;
+    private long someLong;
+    private int someInt;
+    private String someString;
+    private Timestamp someDtm;
 
     private TestBean() { }
 
-    public TestBean(Long test_key, long some_long, int some_int, String some_string, Timestamp some_dtm) {
-        this.test_key = test_key;
-        this.some_long = some_long;
-        this.some_int = some_int;
-        this.some_string = some_string;
-        this.some_dtm = some_dtm;
+    public TestBean(Long testKey, long someLong, int someInt, String someString, Timestamp someDtm) {
+        this.testKey = testKey;
+        this.someLong = someLong;
+        this.someInt = someInt;
+        this.someString = someString;
+        this.someDtm = someDtm;
     }
 
-    public Long getTest_key() {
-        return test_key;
+    public Long getTestKey() {
+        return testKey;
     }
 
-    public long getSome_long() {
-        return some_long;
+    public long getSomeLong() {
+        return someLong;
     }
 
-    public int getSome_int() {
-        return some_int;
+    public int getSomeInt() {
+        return someInt;
     }
 
-    public String getSome_string() {
-        return some_string;
+    public String getSomeString() {
+        return someString;
     }
 
-    public Timestamp getSome_dtm() {
-        return some_dtm;
+    public Timestamp getSomeDtm() {
+        return someDtm;
     }
 }

@@ -1,14 +1,13 @@
 package cyeagy.dorm;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import org.apache.commons.lang3.reflect.FieldUtils;
-
 import java.lang.reflect.Field;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
@@ -19,17 +18,17 @@ import static java.util.stream.Collectors.joining;
 
 public class SqlGenerator {
     public static final Map<Class<?>, String> CLASS_SQL_TYPE_MAP = initClassTypeMap();//just using this for primary key array casting so far...
-    private static final List<Class<?>> QUOTED_CLASSES = Lists.newArrayList(String.class, Timestamp.class, Date.class, Time.class);
+    private static final List<Class<?>> QUOTED_CLASSES = Arrays.asList(String.class, Timestamp.class, Date.class, Time.class);
     private static final Collector<CharSequence, ?, String> COMMA_JOIN = joining(", ");
 
     private static Map<Class<?>, String> initClassTypeMap(){
-        return ImmutableMap.<Class<?>, String>builder()
-                .put(Long.class, "BIGINT")
-                .put(Long.TYPE, "BIGINT")
-                .put(Integer.class, "INTEGER")
-                .put(Integer.TYPE, "INTEGER")
-                .put(String.class, "VARCHAR")
-                .build();
+        final Map<Class<?>, String> map = new HashMap<>();
+        map.put(Long.class, "BIGINT");
+        map.put(Long.TYPE, "BIGINT");
+        map.put(Integer.class, "INTEGER");
+        map.put(Integer.TYPE, "INTEGER");
+        map.put(String.class, "VARCHAR");
+        return Collections.unmodifiableMap(map);
     }
 
     public String generateSelectSqlTemplate(TableData table) {
@@ -106,22 +105,6 @@ public class SqlGenerator {
         return getColumnName(table.getPrimaryKey()) + ", " + columns(table);
     }
 
-    private String columnValues(TableData table, Object bean) throws IllegalAccessException {
-        final List<String> vals = new ArrayList<>(table.getColumns().size());
-        for (Field column : table.getColumns()) {
-            vals.add(readFieldValue(bean, column));
-        }
-        return vals.stream().collect(COMMA_JOIN);
-    }
-
-    private String columnsAndValues(TableData table, Object bean) throws IllegalAccessException {
-        final List<String> vals = new ArrayList<>(table.getColumns().size());
-        for (Field column : table.getColumns()) {
-            vals.add(getColumnName(column) + " = " + readFieldValue(bean, column));
-        }
-        return vals.stream().collect(COMMA_JOIN);
-    }
-
     private String columnsNamedParams(TableData table) {
         return table.getColumns().stream().map(f -> ":" + getColumnName(f)).collect(COMMA_JOIN);
     }
@@ -131,28 +114,17 @@ public class SqlGenerator {
     }
 
     private String columnsWithNamedParams(TableData table) {
-        return table.getColumns().stream().map(f -> getColumnName(f) + " = :" + f.getName()).collect(COMMA_JOIN);
+        return table.getColumns().stream().map(f -> getColumnName(f) + " = :" + getColumnName(f)).collect(COMMA_JOIN);
     }
 
     private String columnsIndexParams(int size) {
         return IntStream.range(0, size).mapToObj(i -> "?").collect(COMMA_JOIN);
     }
 
-    private String readFieldValue(Object bean, Field field) throws IllegalAccessException {
-        Object o = FieldUtils.readField(field, bean, true);
-        if(o == null){
-            return null;
-        }
-        String val = o.toString();
-        if(QUOTED_CLASSES.contains(field.getType())){
-            val = "'" + val + "'";
-        }
-        return val;
-    }
-
     public class Extras{
+
         public String generateSelectSql(TableData table, Object bean) throws IllegalAccessException {
-            return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), readFieldValue(bean, table.getPrimaryKey()));
+            return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), readFieldValue(table.getPrimaryKey(), bean));
         }
 
         public String generateInsertSql(TableData table, Object bean) throws IllegalAccessException {
@@ -160,11 +132,40 @@ public class SqlGenerator {
         }
 
         public String generateUpdateSql(TableData table, Object bean) throws IllegalAccessException {
-            return formatUpdate(table.getTableName(), columnsAndValues(table, bean), getColumnName(table.getPrimaryKey()), readFieldValue(bean, table.getPrimaryKey()));
+            return formatUpdate(table.getTableName(), columnsAndValues(table, bean), getColumnName(table.getPrimaryKey()), readFieldValue(table.getPrimaryKey(), bean));
         }
 
         public String generateDeleteSql(TableData table, Object bean) throws IllegalAccessException {
-            return formatDelete(table.getTableName(), getColumnName(table.getPrimaryKey()), readFieldValue(bean, table.getPrimaryKey()));
+            return formatDelete(table.getTableName(), getColumnName(table.getPrimaryKey()), readFieldValue(table.getPrimaryKey(), bean));
+        }
+
+        private String columnValues(TableData table, Object bean) throws IllegalAccessException {
+            final List<String> vals = new ArrayList<>(table.getColumns().size());
+            for (Field column : table.getColumns()) {
+                vals.add(readFieldValue(column, bean));
+            }
+            return vals.stream().collect(COMMA_JOIN);
+        }
+
+        private String columnsAndValues(TableData table, Object bean) throws IllegalAccessException {
+            final List<String> vals = new ArrayList<>(table.getColumns().size());
+            for (Field column : table.getColumns()) {
+                vals.add(getColumnName(column) + " = " + readFieldValue(column, bean));
+            }
+            return vals.stream().collect(COMMA_JOIN);
+        }
+
+        private String readFieldValue(Field field, Object bean) throws IllegalAccessException {
+            ReflectUtil.setAccessible(field);
+            Object o = ReflectUtil.readField(field, bean);
+            if(o == null){
+                return null;
+            }
+            String val = o.toString();
+            if(QUOTED_CLASSES.contains(field.getType())){
+                val = "'" + val + "'";
+            }
+            return val;
         }
     }
 }
