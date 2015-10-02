@@ -45,18 +45,18 @@ public class DORMTest {
         TestBean result = DORM.insert(connection, bean);
         assertNotNull(result.getTestKey());
 
-        TestBean readBean = DORM.select(connection, result.getTestKey(), TestBean.class);
-        assertThat(readBean.getSomeString(), equalTo(bean.getSomeString()));
+        result = DORM.select(connection, result.getTestKey(), TestBean.class);
+        assertThat(result.getSomeString(), equalTo(bean.getSomeString()));
 
         DORM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), bean.getSomeInt(), "changed string", bean.getSomeDtm()));
 
-        readBean = DORM.select(connection, result.getTestKey(), TestBean.class);
-        assertThat(bean.getSomeString(), not(equalTo(readBean.getSomeString())));
+        result = DORM.select(connection, result.getTestKey(), TestBean.class);
+        assertThat(bean.getSomeString(), not(equalTo(result.getSomeString())));
 
         DORM.delete(connection, result.getTestKey(), TestBean.class);
 
-        readBean = DORM.select(connection, result.getTestKey(), TestBean.class);
-        assertNull(readBean);
+        result = DORM.select(connection, result.getTestKey(), TestBean.class);
+        assertNull(result);
     }
 
     @Test

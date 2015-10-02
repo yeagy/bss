@@ -1,7 +1,7 @@
 # dorm -- dumb object relational mapper
-##### Joinless ORM. This library can automatically do single table/object CRUD operations. For more *exotic* things like joins, this library can generate SQL that can then be handed edited and combined with enhanced JDBC wrappers for explicit control. Dorm is a complement to, and not replacement of, JDBC.
+##### Joinless ORM. This library can automagically do single table/object CRUD operations. For more *exotic* things like joins, this library can generate SQL that can then be handed edited and combined with enhanced JDBC wrappers for explicit control. Dorm is a complement to, and not replacement of, JDBC.
 
-I was inspired to write this library because I hate Hibernate, but I also hate writing boilerplate JDBC. My opinion is that Hibernate is an overly complex piece of a software where the productivity benefits are outweighed by maintenance problems. My opinion is also that writing JDBC is time consuming, and the most mundane can largely be metaprogrammed by convention.
+I was inspired to write this library because I hate Hibernate, but I also hate writing boilerplate JDBC. My opinion is that Hibernate is a bloated piece of software where the productivity benefits are not worth the various trade-offs. My opinion is also that writing JDBC is time consuming, and the most mundane can largely be metaprogrammed by convention.
 
 #### Dependencies
  * Java 8
@@ -21,7 +21,7 @@ CREATE TABLE test_bean(
   some_dtm TIMESTAMP
 );
 ```
-Example POJO
+Example POJO:
 ```
 import java.sql.Timestamp;
 
@@ -53,18 +53,18 @@ TestBean bean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test stri
 TestBean result = DORM.insert(connection, bean);
 assertNotNull(result.getTestKey());
 
-TestBean readBean = DORM.select(connection, result.getTestKey(), TestBean.class);
-assertThat(readBean.getSomeString(), equalTo(bean.getSomeString()));
+result = DORM.select(connection, result.getTestKey(), TestBean.class);
+assertThat(result.getSomeString(), equalTo(bean.getSomeString()));
 
 DORM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), bean.getSomeInt(), "changed string", bean.getSomeDtm()));
 
-readBean = DORM.select(connection, result.getTestKey(), TestBean.class);
-assertThat(bean.getSomeString(), not(equalTo(readBean.getSomeString())));
+result = DORM.select(connection, result.getTestKey(), TestBean.class);
+assertThat(bean.getSomeString(), not(equalTo(result.getSomeString())));
 
 DORM.delete(connection, result.getTestKey(), TestBean.class);
 
-readBean = DORM.select(connection, result.getTestKey(), TestBean.class);
-assertNull(readBean);
+result = DORM.select(connection, result.getTestKey(), TestBean.class);
+assertNull(result);
 ```
 Annotation example:
 ```
@@ -93,4 +93,5 @@ public class AnnotatedTestBean {
     public Timestamp getLegacyTimestamp() { return legacyTimestamp; }
 }
 ```
-You can also use the SqlGenerator class to generate DML based on your pojo. Supports both with ? parameters and :named parameters.
+You can also use the SqlGenerator class to generate DML based on your pojo.<br/>
+Supports both ? parameters and :named parameters.
