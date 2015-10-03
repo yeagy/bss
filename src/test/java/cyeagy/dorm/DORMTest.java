@@ -1,12 +1,9 @@
 package cyeagy.dorm;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.Sets;
-import com.google.common.io.Resources;
 import org.h2.jdbcx.JdbcDataSource;
 import org.h2.tools.Server;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -15,6 +12,9 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Scanner;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
@@ -22,21 +22,30 @@ import static org.junit.Assert.*;
 
 public class DORMTest {
     private static DORM DORM = new DORM();
+    private static Server server;
+    private static Connection connection;
 
-    private Server server;
-    private Connection connection;
-
-    @Before
-    public void setUp() throws Exception {
+    @BeforeClass
+    public static void setUp() throws Exception {
         server = Server.createTcpServer().start();
         Class.forName("org.h2.Driver");
         JdbcDataSource dataSource = new JdbcDataSource();
         dataSource.setUrl("jdbc:h2:mem:");
         connection = dataSource.getConnection();
-        String create = Resources.toString(Resources.getResource("sql/test_create.sql"), Charsets.UTF_8);
+        String create = new Scanner(DORMTest.class.getResourceAsStream("/sql/test_create.sql"), "UTF-8").useDelimiter("\\A").next();
         Statement statement = connection.createStatement();
         statement.execute(create);
         statement.close();
+        String insert = new Scanner(DORMTest.class.getResourceAsStream("/sql/test_insert.sql"), "UTF-8").useDelimiter("\\A").next();
+        statement = connection.createStatement();
+        statement.execute(insert);
+        statement.close();
+    }
+
+    @AfterClass
+    public static void tearDown() throws Exception {
+        connection.close();
+        server.shutdown();
     }
 
     @Test
@@ -92,9 +101,10 @@ public class DORMTest {
     public void testUpdate() throws Exception {
         Timestamp now = Timestamp.from(Instant.now().plus(1, ChronoUnit.DAYS));
         {
+            final long key = 4;
             TestBean testBean = new TestBean(4l, Long.MAX_VALUE, Integer.MAX_VALUE, "FOURTH", now);
 
-            final TestBean preSelect = DORM.select(connection, 4l, TestBean.class);
+            final TestBean preSelect = DORM.select(connection, key, TestBean.class);
             assertNotNull(preSelect);
             assertThat(preSelect.getTestKey(), equalTo(testBean.getTestKey()));
             assertThat(preSelect.getSomeLong(), not(equalTo(testBean.getSomeLong())));
@@ -104,7 +114,7 @@ public class DORMTest {
 
             DORM.update(connection, testBean);
 
-            final TestBean select = DORM.select(connection, 4l, TestBean.class);
+            final TestBean select = DORM.select(connection, key, TestBean.class);
             assertNotNull(select);
             assertThat(select.getTestKey(), equalTo(testBean.getTestKey()));
             assertThat(select.getSomeLong(), equalTo(testBean.getSomeLong()));
@@ -113,9 +123,10 @@ public class DORMTest {
             assertThat(select.getSomeDtm(), equalTo(testBean.getSomeDtm()));
         }
         {
-            AnnotatedTestBean testBean = new AnnotatedTestBean(5l, Long.MAX_VALUE, Integer.MAX_VALUE, "FOURTH", now);
+            final long key = 5;
+            AnnotatedTestBean testBean = new AnnotatedTestBean(key, Long.MAX_VALUE, Integer.MAX_VALUE, "FOURTH", now);
 
-            final AnnotatedTestBean preSelect = DORM.select(connection, 5l, AnnotatedTestBean.class);
+            final AnnotatedTestBean preSelect = DORM.select(connection, key, AnnotatedTestBean.class);
             assertNotNull(preSelect);
             assertThat(preSelect.getLegacyKey(), equalTo(testBean.getLegacyKey()));
             assertThat(preSelect.getLegacyLong(), not(equalTo(testBean.getLegacyLong())));
@@ -125,7 +136,7 @@ public class DORMTest {
 
             DORM.update(connection, testBean);
 
-            final AnnotatedTestBean select = DORM.select(connection, 5l, AnnotatedTestBean.class);
+            final AnnotatedTestBean select = DORM.select(connection, key, AnnotatedTestBean.class);
             assertNotNull(select);
             assertThat(select.getLegacyKey(), equalTo(testBean.getLegacyKey()));
             assertThat(select.getLegacyLong(), equalTo(testBean.getLegacyLong()));
@@ -137,22 +148,23 @@ public class DORMTest {
 
     @Test
     public void testSelect() throws Exception {
+        final long key = 3;
         {
-            final TestBean result = DORM.select(connection, 1l, TestBean.class);
+            final TestBean result = DORM.select(connection, key, TestBean.class);
             assertNotNull(result);
-            assertThat(result.getTestKey(), equalTo(1l));
+            assertThat(result.getTestKey(), equalTo(key));
         }
         {
-            final AnnotatedTestBean result = DORM.select(connection, 1l, AnnotatedTestBean.class);
+            final AnnotatedTestBean result = DORM.select(connection, key, AnnotatedTestBean.class);
             assertNotNull(result);
-            assertThat(result.getLegacyKey(), equalTo(1l));
+            assertThat(result.getLegacyKey(), equalTo(key));
         }
     }
 
     @Ignore//H2 does not support connection.createArray
     @Test
     public void testBulkSelect() throws Exception {
-        Set<Long> keys = Sets.newHashSet(1l, 2l, 3l, 5l);
+        Set<Long> keys = new HashSet<>(Arrays.asList(3l, 4l, 5l));
         final Set<TestBean> results = DORM.select(connection, keys, TestBean.class);
         assertNotNull(results);
         assertThat(results.size(), equalTo(keys.size()));
@@ -185,11 +197,5 @@ public class DORMTest {
             final AnnotatedTestBean select = DORM.select(connection, key, AnnotatedTestBean.class);
             assertNull(select);
         }
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        connection.close();
-        server.shutdown();
     }
 }

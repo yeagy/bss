@@ -5,10 +5,9 @@ I was inspired to write this library because I hate Hibernate, but I also hate w
 
 #### Dependencies
  * Java 8
- * Guava 18
 
 ## Usage
-##### Convention -> Table is in lower snake_case, POJO in CamelCase. Primary Key is first/top field.
+##### Convention -> Table is in lower snake_case, POJO in CamelCase. Primary Key is first/top field. No parameter constructor (any scope).
 Dorm is designed to be as minimal as possible. As such, it can work on POJO's without need for annotations if a simple convention is followed. Annotations can be used to stray from convention.
 
 Example table:
@@ -93,5 +92,5 @@ public class AnnotatedTestBean {
     public Timestamp getLegacyTimestamp() { return legacyTimestamp; }
 }
 ```
-You can also use the SqlGenerator class to generate DML based on your pojo.<br/>
+You can also use the SqlGenerator class to generate DDL/DML based on your POJO.<br/>
 Supports both ? parameters and :named parameters.

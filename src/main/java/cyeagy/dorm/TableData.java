@@ -1,14 +1,16 @@
 package cyeagy.dorm;
 
 import java.lang.reflect.Field;
+import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import static com.google.common.base.CaseFormat.LOWER_UNDERSCORE;
-import static com.google.common.base.CaseFormat.UPPER_CAMEL;
-
+/**
+ * This class analyzes a POJO via reflection to identify table data
+ */
 public class TableData {
-
     private final String tableName;
     private final Field primaryKey;
     private final List<Field> columns;//excluding PK
@@ -32,11 +34,11 @@ public class TableData {
     }
 
     public static TableData analyze(Class<?> clazz){
-        return analyze(clazz, false);
+        return analyze(clazz, true);
     }
 
     public static TableData analyze(Class<?> clazz, boolean forceAccessible){
-        final String tableName = determineTableName(clazz);
+        final String tableName = getTableName(clazz);
         final Field[] fields = clazz.getDeclaredFields();
         final List<Field> columns = new ArrayList<>(fields.length);
         Field primaryKey = null;
@@ -54,10 +56,15 @@ public class TableData {
             primaryKey = fields[0];
             columns.remove(0);//remove the pk from the column list
         }
-        return new TableData(tableName, primaryKey, columns);
+        return new TableData(tableName, primaryKey, Collections.unmodifiableList(columns));
     }
 
-    private static String determineTableName(Class<?> clazz){
+    public static String getColumnName(Field field) {
+        final Column annotation = field.getDeclaredAnnotation(Column.class);
+        return camelToSnake(annotation == null ? field.getName() : annotation.name());
+    }
+
+    public static String getTableName(Class<?> clazz){
         final Table annotation = clazz.getDeclaredAnnotation(Table.class);
         if(annotation != null){
             if(annotation.schema() == null || annotation.schema().isEmpty()){
@@ -65,11 +72,25 @@ public class TableData {
             }
             return annotation.schema() + "." + annotation.name();
         }
-        return UPPER_CAMEL.to(LOWER_UNDERSCORE, clazz.getSimpleName());
+        return camelToSnake(clazz.getSimpleName());
     }
 
-    public static String getColumnName(Field field) {
-        final Column annotation = field.getDeclaredAnnotation(Column.class);
-        return annotation == null ? UPPER_CAMEL.to(LOWER_UNDERSCORE, field.getName()) : annotation.name();
+    private static String camelToSnake(String camel){
+        final StringBuilder sb = new StringBuilder();
+        final StringCharacterIterator iter = new StringCharacterIterator(camel);
+        boolean lastLower = false;
+        for(char c = iter.first(); c != CharacterIterator.DONE; c = iter.next()){
+            if(Character.isUpperCase(c)){
+                if(lastLower){
+                    sb.append('_');
+                }
+                sb.append(Character.toLowerCase(c));
+                lastLower = false;
+            } else {
+                sb.append(c);
+                lastLower = true;
+            }
+        }
+        return sb.toString();
     }
 }

@@ -7,29 +7,19 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collector;
-import java.util.stream.IntStream;
 
 import static cyeagy.dorm.TableData.getColumnName;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
+/**
+ * Use reflection to generate SQL prepared statements from POJOs
+ */
 public class SqlGenerator {
-    public static final Map<Class<?>, String> CLASS_SQL_TYPE_MAP = initClassTypeMap();//just using this for primary key array casting so far...
-    private static final List<Class<?>> QUOTED_CLASSES = Arrays.asList(String.class, Timestamp.class, Date.class, Time.class);
+    private static final List<Class<?>> QUOTED_CLASSES = Arrays.asList(String.class, Timestamp.class, Date.class, Time.class);//todo proper formatting on dates/times
     private static final Collector<CharSequence, ?, String> COMMA_JOIN = joining(", ");
-
-    private static Map<Class<?>, String> initClassTypeMap(){
-        final Map<Class<?>, String> map = new HashMap<>();
-        map.put(Long.class, "BIGINT");
-        map.put(Long.TYPE, "BIGINT");
-        map.put(Integer.class, "INTEGER");
-        map.put(Integer.TYPE, "INTEGER");
-        map.put(String.class, "VARCHAR");
-        return Collections.unmodifiableMap(map);
-    }
 
     public String generateSelectSqlTemplate(TableData table) {
         return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), "?");
@@ -45,26 +35,44 @@ public class SqlGenerator {
     }
 
     public String generateBulkSelectSqlTemplate(TableData table) {
-        final String type = CLASS_SQL_TYPE_MAP.get(table.getPrimaryKey().getType());
-        return formatBulkSelect(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), "?", type);
+        return formatBulkSelect(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), "?");
     }
 
     public String generateBulkSelectSqlTemplateNamed(TableData table) {
         final String pk = getColumnName(table.getPrimaryKey());
-        final String type = CLASS_SQL_TYPE_MAP.get(table.getPrimaryKey().getType());
-        return formatBulkSelect(columnsWithPrimaryKey(table), table.getTableName(), pk, ":" + pk, type);
+        return formatBulkSelect(columnsWithPrimaryKey(table), table.getTableName(), pk, ":" + pk);
     }
 
-    private String formatBulkSelect(String columns, String tableName, String primaryKey, String primaryKeyValue, String arrayType){
-        return String.format("SELECT %s FROM %s WHERE %s = ANY (%s :: %s[])", columns, tableName, primaryKey, primaryKeyValue, arrayType);
+    private String formatBulkSelect(String columns, String tableName, String primaryKey, String primaryKeyValue){
+        return String.format("SELECT %s FROM %s WHERE %s IN (SELECT unnest(%s))", columns, tableName, primaryKey, primaryKeyValue);
     }
 
     public String generateInsertSqlTemplate(TableData table) {
-        return formatInsert(table.getTableName(), columns(table), columnsIndexParams(table.getColumns().size()));
+        return generateInsertSqlTemplate(table, false);
     }
 
     public String generateInsertSqlTemplateNamed(TableData table) {
-        return formatInsert(table.getTableName(), columns(table), columnsNamedParams(table));
+        return generateInsertSqlTemplateNamed(table, false);
+    }
+
+    public String generateInsertSqlTemplate(TableData table, boolean includePrimaryKey) {
+        String columns = columns(table);
+        int numCols = table.getColumns().size();
+        if(includePrimaryKey){
+            columns = getColumnName(table.getPrimaryKey()) + ", " + columns;
+            numCols++;
+        }
+        return formatInsert(table.getTableName(), columns, columnsIndexParams(numCols));
+    }
+
+    public String generateInsertSqlTemplateNamed(TableData table, boolean includePrimaryKey) {
+        String columns = columns(table);
+        String namedParams = columnsNamedParams(table);
+        if(includePrimaryKey){
+            columns = getColumnName(table.getPrimaryKey()) + ", " + columns;
+            namedParams = ":" +  getColumnName(table.getPrimaryKey()) + ", " + columns;
+        }
+        return formatInsert(table.getTableName(), columns, namedParams);
     }
 
     private String formatInsert(String tableName, String columns, String values){
@@ -93,6 +101,19 @@ public class SqlGenerator {
         return formatDelete(table.getTableName(), pk, ":" + pk);
     }
 
+    public String generateCreateStatement(TableData table){
+        final List<String> columns = new ArrayList<>(table.getColumns().size() + 1);
+        columns.add(getColumnName(table.getPrimaryKey()) + " " + TypeMappers.CLASS_SQL_TYPE_MAP.get(table.getPrimaryKey().getType()) + " PRIMARY KEY");
+        for (Field field : table.getColumns()) {
+            columns.add(getColumnName(field) + " " + TypeMappers.CLASS_SQL_TYPE_MAP.get(field.getType()) + (field.getType().isPrimitive() ? " NOT NULL" : ""));
+        }
+        return formatCreate(table.getTableName(), columns);
+    }
+
+    private String formatCreate(String tableName, List<String> columns){
+        return String.format("CREATE TABLE %s (%s)", tableName, columns.stream().collect(COMMA_JOIN));
+    }
+
     private String formatDelete(String tableName, String primaryKey, String primaryKeyValue){
         return String.format("DELETE FROM %s WHERE %s = %s", tableName, primaryKey, primaryKeyValue);
     }
@@ -118,11 +139,11 @@ public class SqlGenerator {
     }
 
     private String columnsIndexParams(int size) {
-        return IntStream.range(0, size).mapToObj(i -> "?").collect(COMMA_JOIN);
+        return String.join(", ", Collections.nCopies(size, "?"));
     }
 
+    //i should probably shit-can this
     public class Extras{
-
         public String generateSelectSql(TableData table, Object bean) throws IllegalAccessException {
             return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), readFieldValue(table.getPrimaryKey(), bean));
         }
