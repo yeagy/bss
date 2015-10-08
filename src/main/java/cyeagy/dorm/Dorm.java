@@ -1,7 +1,6 @@
 package cyeagy.dorm;
 
 import java.lang.reflect.Field;
-import java.sql.Array;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -62,31 +61,12 @@ public class Dorm {
      * @throws Exception
      */
     public <T> Set<T> select(Connection connection, Collection<?> keys, Class<T> clazz) throws Exception{
-        return select(connection, keys, clazz, null);
-    }
-
-    /**
-     * execute a select filtering on a set of primary keys.
-     * only known to work on postgres.
-     * @param connection db connection. close it yourself
-     * @param keys primary keys to filter on
-     * @param clazz entity type class
-     * @param keyCastType override the default primary key array cast type
-     * @param <T> entity type
-     * @return matching entities or empty set
-     * @throws Exception
-     */
-    public <T> Set<T> select(Connection connection, Collection<?> keys, Class<T> clazz, String keyCastType) throws Exception{
         final TableData tableData = TableData.analyze(clazz);
         final String select = GENERATOR.generateBulkSelectSqlTemplate(tableData);
         final Set<?> keySet = keys instanceof Set ? (Set<?>) keys : new HashSet<>(keys);
         final Set<T> results = new HashSet<>(keySet.size());
         try(final BetterPreparedStatement ps = BetterPreparedStatement.from(connection.prepareStatement(select))){
-            if(keyCastType == null) {
-                keyCastType = TypeMappers.CLASS_SQL_TYPE_MAP.get(tableData.getPrimaryKey().getType());
-            }
-            final Array array = ps.createArrayOf(keyCastType, keySet.toArray());
-            ps.setArray(1, array);
+            ps.setArray(1, keySet);
             try(final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())){
                 while (rs.next()){
                     final T result = constructNewInstance(clazz);

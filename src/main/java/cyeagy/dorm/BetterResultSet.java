@@ -44,83 +44,83 @@ public class BetterResultSet implements ResultSet{
     @SuppressWarnings("unchecked")
     public <T> T[] getArrayCasted(int columnIndex) throws SQLException {
         final Array v = getArray(columnIndex);
-        return rs.wasNull() ? null : (T[]) v.getArray();
+        return wasNull() ? null : (T[]) v.getArray();
     }
 
     @SuppressWarnings("unchecked")
     public <T> T[] getArrayCasted(String columnLabel) throws SQLException {
         final Array v = getArray(columnLabel);
-        return rs.wasNull() ? null : (T[]) v.getArray();
+        return wasNull() ? null : (T[]) v.getArray();
     }
 
     public Boolean getBooleanNullable(int columnIndex) throws SQLException {
         final boolean v = getBoolean(columnIndex);
-        return rs.wasNull() ? null : v;
+        return wasNull() ? null : v;
     }
 
     public Byte getByteNullable(int columnIndex) throws SQLException {
-        final byte v = rs.getByte(columnIndex);
-        return rs.wasNull() ? null : v;
+        final byte v = getByte(columnIndex);
+        return wasNull() ? null : v;
     }
 
     public Short getShortNullable(int columnIndex) throws SQLException {
-        final short v = rs.getShort(columnIndex);
-        return rs.wasNull() ? null : v;
+        final short v = getShort(columnIndex);
+        return wasNull() ? null : v;
     }
 
     public Integer getIntNullable(int columnIndex) throws SQLException {
-        final int v = rs.getInt(columnIndex);
-        return rs.wasNull() ? null : v;
+        final int v = getInt(columnIndex);
+        return wasNull() ? null : v;
     }
 
     public Long getLongNullable(int columnIndex) throws SQLException {
-        final long v = rs.getLong(columnIndex);
-        return rs.wasNull() ? null : v;
+        final long v = getLong(columnIndex);
+        return wasNull() ? null : v;
     }
 
     public Float getFloatNullable(int columnIndex) throws SQLException {
-        final float v = rs.getFloat(columnIndex);
-        return rs.wasNull() ? null : v;
+        final float v = getFloat(columnIndex);
+        return wasNull() ? null : v;
     }
 
     public Double getDoubleNullable(int columnIndex) throws SQLException {
-        final double v = rs.getDouble(columnIndex);
-        return rs.wasNull() ? null : v;
+        final double v = getDouble(columnIndex);
+        return wasNull() ? null : v;
     }
 
     public Boolean getBooleanNullable(String columnLabel) throws SQLException {
-        final boolean v = rs.getBoolean(columnLabel);
-        return rs.wasNull() ? null : v;
+        final boolean v = getBoolean(columnLabel);
+        return wasNull() ? null : v;
     }
 
     public Byte getByteNullable(String columnLabel) throws SQLException {
-        final byte v = rs.getByte(columnLabel);
-        return rs.wasNull() ? null : v;
+        final byte v = getByte(columnLabel);
+        return wasNull() ? null : v;
     }
 
     public Short getShortNullable(String columnLabel) throws SQLException {
-        final short v = rs.getShort(columnLabel);
-        return rs.wasNull() ? null : v;
+        final short v = getShort(columnLabel);
+        return wasNull() ? null : v;
     }
 
     public Integer getIntNullable(String columnLabel) throws SQLException {
-        final int v = rs.getInt(columnLabel);
-        return rs.wasNull() ? null : v;
+        final int v = getInt(columnLabel);
+        return wasNull() ? null : v;
     }
 
     public Long getLongNullable(String columnLabel) throws SQLException {
-        final long v = rs.getLong(columnLabel);
-        return rs.wasNull() ? null : v;
+        final long v = getLong(columnLabel);
+        return wasNull() ? null : v;
     }
 
     public Float getFloatNullable(String columnLabel) throws SQLException {
-        final float v = rs.getFloat(columnLabel);
-        return rs.wasNull() ? null : v;
+        final float v = getFloat(columnLabel);
+        return wasNull() ? null : v;
     }
 
     public Double getDoubleNullable(String columnLabel) throws SQLException {
-        final double v = rs.getDouble(columnLabel);
-        return rs.wasNull() ? null : v;
+        final double v = getDouble(columnLabel);
+        return wasNull() ? null : v;
     }
 
     //ALL BELOW ARE DELEGATE METHODS
