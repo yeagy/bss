@@ -14,8 +14,14 @@ import static cyeagy.dorm.ReflectUtil.*;
 /**
  * Joinless ORM. No setup required.
  */
-public class DORM {
-    private static final SqlGenerator GENERATOR = new SqlGenerator();
+public class Dorm {
+    private static final SqlGenerator GENERATOR = SqlGenerator.fromDefaults();
+
+    public static Dorm fromDefaults(){
+        return new Dorm();
+    };
+
+    private Dorm(){}
 
     /**
      * execute a select query filtering on the primary key.

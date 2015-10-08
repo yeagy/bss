@@ -2,16 +2,13 @@ package cyeagy.dorm;
 
 import org.junit.Test;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Scanner;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 
 public class SqlGeneratorTest {
-    private static final SqlGenerator GENERATOR = new SqlGenerator();
-    private static final SqlGenerator.Extras EXTRAS = GENERATOR.new Extras();
+    private static final SqlGenerator GENERATOR = SqlGenerator.fromDefaults();
 
     @Test
     public void testGenerateSelectSqlTemplate() throws Exception {
@@ -95,53 +92,10 @@ public class SqlGeneratorTest {
 
     @Test
     public void testGenerateCreateStatement() throws Exception {
-        String control = new Scanner(DORMTest.class.getResourceAsStream("/sql/test_create.sql"), "UTF-8").useDelimiter("\\A").next();
+        String control = new Scanner(DormTest.class.getResourceAsStream("/sql/test_create.sql"), "UTF-8").useDelimiter("\\A").next();
         control = control.replaceAll("\\n", "").replaceAll("  ", " ").replaceAll("\\( ", "\\(").replaceAll(" AUTO_INCREMENT", "");
         TableData tableData = TableData.analyze(TestBean.class);
         String create = GENERATOR.generateCreateStatement(tableData);
         assertThat(create, equalTo(control));
     }
-
-    @Test
-    public void testGenerateSelectSql() throws Exception {
-        TestBean testBean = new TestBean(999l, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()));
-        String control = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key = %s";
-        control = String.format(control, testBean.getTestKey());
-        TableData tableData = TableData.analyze(TestBean.class);
-        String select = EXTRAS.generateSelectSql(tableData, testBean);
-        assertThat(select, equalTo(control));
-    }
-
-    @Test
-    public void testGenerateInsertSql() throws Exception {
-        Timestamp now = Timestamp.from(Instant.now());
-        TestBean testBean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now);
-        String control = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm) VALUES (%s, %s, '%s', '%s')";
-        control = String.format(control, testBean.getSomeLong(), testBean.getSomeInt(), testBean.getSomeString(), testBean.getSomeDtm());
-        TableData tableData = TableData.analyze(TestBean.class);
-        String insert = EXTRAS.generateInsertSql(tableData, testBean);
-        assertThat(insert, equalTo(control));
-    }
-
-    @Test
-    public void testGenerateUpdateSql() throws Exception {
-        Timestamp now = Timestamp.from(Instant.now());
-        TestBean testBean = new TestBean(999l, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now);
-        String control = "UPDATE test_bean SET some_long = %s, some_int = %s, some_string = '%s', some_dtm = '%s' WHERE test_key = %s";
-        control = String.format(control, testBean.getSomeLong(), testBean.getSomeInt(), testBean.getSomeString(), testBean.getSomeDtm(), testBean.getTestKey());
-        TableData tableData = TableData.analyze(TestBean.class);
-        String update = EXTRAS.generateUpdateSql(tableData, testBean);
-        assertThat(update, equalTo(control));
-    }
-
-    @Test
-    public void testGenerateDeleteSql() throws Exception {
-        TestBean testBean = new TestBean(999l, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()));
-        String control = "DELETE FROM test_bean WHERE test_key = %s";
-        control = String.format(control, testBean.getTestKey());
-        TableData tableData = TableData.analyze(TestBean.class);
-        String delete = EXTRAS.generateDeleteSql(tableData, testBean);
-        assertThat(delete, equalTo(control));
-    }
-
 }

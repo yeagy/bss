@@ -20,11 +20,11 @@ import static cyeagy.dorm.ReflectUtil.*;
  * This class is why I love java 8! No more if/else forests!
  */
 class TypeMappers {
-    static Map<Class<?>, String> CLASS_SQL_TYPE_MAP = initClassTypeMap();
-    static Map<Class<?>, FieldCopier> FIELD_COPIER_MAP = initFieldCopierMap();
-    static Map<Class<?>, FieldResultWriter> FIELD_RESULT_WRITER_MAP = initFieldResultWriterMap();
-    static Map<Class<?>, ObjectParamSetter> OBJECT_PARAM_SETTER_MAP = initObjectParamSetterMap();
-    static Map<Class<?>, FieldParamSetter> FIELD_PARAM_SETTER_MAP = initFieldParamSetterMap();
+    static final Map<Class<?>, String> CLASS_SQL_TYPE_MAP = initClassTypeMap();
+    static final Map<Class<?>, FieldCopier> FIELD_COPIER_MAP = initFieldCopierMap();
+    static final Map<Class<?>, FieldResultWriter> FIELD_RESULT_WRITER_MAP = initFieldResultWriterMap();
+    static final Map<Class<?>, ObjectParamSetter> OBJECT_PARAM_SETTER_MAP = initObjectParamSetterMap();
+    static final Map<Class<?>, FieldParamSetter> FIELD_PARAM_SETTER_MAP = initFieldParamSetterMap();
 
     @FunctionalInterface interface FieldCopier{
         void copy(Field field, Object target, Object origin) throws IllegalAccessException;

@@ -23,29 +23,161 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Enhanced delegate class for PreparedStatement
  * -- Null-safe primitive set methods (to most relevant SQL type https://db.apache.org/ojb/docu/guides/jdbc-types.html)
  * -- Forwards connection create methods
+ * -- :named parameters
  */
 public class BetterPreparedStatement implements PreparedStatement{
     private final PreparedStatement ps;
+    private final NamedParameters namedParameters;
 
+    private BetterPreparedStatement(PreparedStatement ps, NamedParameters namedParameters) {
+        this.ps = ps;
+        this.namedParameters = namedParameters;
+    }
+
+    private static class NamedParameters{
+        private final String processedSql;
+        private final Map<String, List<Integer>> indices;
+        private NamedParameters(String processedSql, Map<String, List<Integer>> indices) {
+            this.processedSql = processedSql;
+            this.indices = indices;
+        }
+        public String getProcessedSql() {
+            return processedSql;
+        }
+        public List<Integer> getIndices(String namedParameter) {
+            return indices.get(namedParameter);
+        }
+    }
+
+    /**
+     * this factory method only supports standard ? parameters.
+     * @param ps PreparedStatement to be wrapped
+     * @return BetterPreparedStatement
+     */
     public static BetterPreparedStatement from(PreparedStatement ps){
         Objects.requireNonNull(ps);
-        return new BetterPreparedStatement(ps);
+        return new BetterPreparedStatement(ps, null);
     }
 
-    private BetterPreparedStatement(PreparedStatement ps) {
-        this.ps = ps;
+    /**
+     * use this factory method in order to use :named parameters. also works with standard ? params.
+     * @param connection close this yourself.
+     * @param sql your sql query
+     * @return BetterPreparedStatement
+     * @throws SQLException
+     */
+    public static BetterPreparedStatement from(Connection connection, String sql) throws SQLException {
+        return from(connection, sql, false);
     }
 
-    public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-        return ps.getConnection().createArrayOf(typeName, elements);
+    /**
+     * use this factory method in order to use :named parameters. also works with standard ? params.
+     * @param connection close this yourself.
+     * @param sql your sql query
+     * @param returnGeneratedKeys true if you want to return generated keys
+     * @return BetterPreparedStatement
+     * @throws SQLException
+     */
+    public static BetterPreparedStatement from(Connection connection, String sql, boolean returnGeneratedKeys) throws SQLException {
+        Objects.requireNonNull(sql);
+        Objects.requireNonNull(connection);
+        NamedParameters named = processNamedParameters(sql);
+        if(named != null){
+            sql = named.getProcessedSql();
+        }
+        final int returnKeys = returnGeneratedKeys ? RETURN_GENERATED_KEYS : NO_GENERATED_KEYS;
+        return new BetterPreparedStatement(connection.prepareStatement(sql, returnKeys), named);
     }
+
+    /**
+     * function copied from http://www.javaworld.com/article/2077706/core-java/named-parameters-for-preparedstatement.html
+     * credit to @author adam_crume
+     * if this doesn't cut it, consider an ANTLR approach
+     * @param sql potential named parameter sql
+     * @return named param info. null if none detected.
+     */
+    private static NamedParameters processNamedParameters(String sql) {
+        if (!sql.contains("?")) {
+            if(sql.contains(":")){
+                StringBuilder processedSql = new StringBuilder(sql.length());
+                Map<String, List<Integer>> indices = new HashMap<>();
+                int idx = 1;
+                boolean inSingleQuote = false;
+                boolean inDoubleQuote = false;
+                for (int i = 0; i < sql.length(); i++) {
+                    char c = sql.charAt(i);
+                    if (inSingleQuote) {
+                        if (c == '\'') {
+                            inSingleQuote = false;
+                        }
+                    } else if (inDoubleQuote) {
+                        if (c == '"') {
+                            inDoubleQuote = false;
+                        }
+                    } else {
+                        if (c == '\'') {
+                            inSingleQuote = true;
+                        } else if (c == '"') {
+                            inDoubleQuote = true;
+                        } else if (c == ':' && (i + 1 < sql.length()) && Character.isJavaIdentifierStart(sql.charAt(i + 1))) {
+                            int j = i + 2;
+                            while (j < sql.length() && Character.isJavaIdentifierPart(sql.charAt(j))) {
+                                j++;
+                            }
+                            String name = sql.substring(i + 1, j);
+                            c = '?';
+                            i += name.length();
+                            multimapPut(indices, name, idx++);
+                        }
+                    }
+                    processedSql.append(c);
+                }
+                if(!indices.isEmpty()){
+                    return new NamedParameters(processedSql.toString(), indices);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void multimapPut(Map<String, List<Integer>> map, String s, Integer i) {
+        List<Integer> list = map.get(s);
+        if(list == null){
+            list = new ArrayList<>();
+            map.put(s, list);
+        }
+        list.add(i);
+    }
+
+    private interface NamedParameterSetter{
+        void set(BetterPreparedStatement ps, int idx) throws SQLException;
+    }
+
+    private void setNamedParameter(String namedParameter, NamedParameterSetter setter) throws SQLException {
+        Objects.requireNonNull(namedParameters);
+        final List<Integer> indices = namedParameters.getIndices(namedParameter);
+        if(indices != null){
+            for (Integer idx : indices) {
+                setter.set(this, idx);
+            }
+        } else {
+            throw new IllegalStateException("no named parameters detected for sql statement");
+        }
+    }
+
+    //connection forwards
 
     public Blob createBlob() throws SQLException {
         return ps.getConnection().createBlob();
@@ -62,6 +194,279 @@ public class BetterPreparedStatement implements PreparedStatement{
     public SQLXML createSQLXML() throws SQLException {
         return ps.getConnection().createSQLXML();
     }
+
+    public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+        return ps.getConnection().createArrayOf(typeName, elements);
+    }
+
+    public Array createArray(Object[] elements, Class<?> clazz) throws SQLException {
+        final String sqlType = TypeMappers.CLASS_SQL_TYPE_MAP.get(clazz);
+        if(sqlType == null){
+            throw new SQLException("no sql type found for java class " + clazz.getName());
+        }
+        return createArrayOf(sqlType, elements);
+    }
+
+    public Array createArray(Collection<?> elements, Class<?> clazz) throws SQLException {
+        return createArray(elements.toArray(), clazz);
+    }
+
+    //additional setters
+    //:named setters
+
+    public void setNull(String namedParameter, int sqlType) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setNull(parameterIndex, sqlType));
+    }
+
+    public void setBoolean(String namedParameter, boolean x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setBoolean(parameterIndex, x));
+    }
+
+    public void setByte(String namedParameter, byte x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setByte(parameterIndex, x));
+    }
+
+    public void setShort(String namedParameter, short x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setShort(parameterIndex, x));
+    }
+
+    public void setInt(String namedParameter, int x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setInt(parameterIndex, x));
+    }
+
+    public void setLong(String namedParameter, long x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setLong(parameterIndex, x));
+    }
+
+    public void setFloat(String namedParameter, float x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setFloat(parameterIndex, x));
+    }
+
+    public void setDouble(String namedParameter, double x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setDouble(parameterIndex, x));
+    }
+
+    public void setBigDecimal(String namedParameter, BigDecimal x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setBigDecimal(parameterIndex, x));
+    }
+
+    public void setString(String namedParameter, String x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setString(parameterIndex, x));
+    }
+
+    public void setBytes(String namedParameter, byte[] x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setBytes(parameterIndex, x));
+    }
+
+    public void setDate(String namedParameter, Date x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setDate(parameterIndex, x));
+    }
+
+    public void setTime(String namedParameter, Time x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setTime(parameterIndex, x));
+    }
+
+    public void setTimestamp(String namedParameter, Timestamp x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setTimestamp(parameterIndex, x));
+    }
+
+    public void setAsciiStream(String namedParameter, InputStream x, int length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setAsciiStream(parameterIndex, x, length));
+    }
+
+    public void setBinaryStream(String namedParameter, InputStream x, int length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setBinaryStream(parameterIndex, x, length));
+    }
+
+    public void setObject(String namedParameter, Object x, int targetSqlType) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setObject(parameterIndex, x, targetSqlType));
+    }
+
+    public void setObject(String namedParameter, Object x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setObject(parameterIndex, x));
+    }
+
+    public void setCharacterStream(String namedParameter, Reader reader, int length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setCharacterStream(parameterIndex, reader, length));
+    }
+
+    public void setRef(String namedParameter, Ref x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setRef(parameterIndex, x));
+    }
+
+    public void setBlob(String namedParameter, Blob x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setBlob(parameterIndex, x));
+    }
+
+    public void setClob(String namedParameter, Clob x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setClob(parameterIndex, x));
+    }
+
+    public void setArray(String namedParameter, Array x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setArray(parameterIndex, x));
+    }
+    
+    public void setDate(String namedParameter, Date x, Calendar cal) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setDate(parameterIndex, x, cal));
+    }
+
+    public void setTime(String namedParameter, Time x, Calendar cal) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setTime(parameterIndex, x, cal));
+    }
+
+    public void setTimestamp(String namedParameter, Timestamp x, Calendar cal) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setTimestamp(parameterIndex, x, cal));
+    }
+
+    public void setNull(String namedParameter, int sqlType, String typeName) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setNull(parameterIndex, sqlType, typeName));
+    }
+
+    public void setURL(String namedParameter, URL x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setURL(parameterIndex, x));
+    }
+
+    public void setRowId(String namedParameter, RowId x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setRowId(parameterIndex, x));
+    }
+
+    public void setNString(String namedParameter, String value) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setNString(parameterIndex, value));
+    }
+
+    public void setNCharacterStream(String namedParameter, Reader value, long length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setNCharacterStream(parameterIndex, value, length));
+    }
+
+    public void setNClob(String namedParameter, NClob value) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setNClob(parameterIndex, value));
+    }
+
+    public void setClob(String namedParameter, Reader reader, long length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setClob(parameterIndex, reader, length));
+    }
+
+    public void setBlob(String namedParameter, InputStream inputStream, long length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setBlob(parameterIndex, inputStream, length));
+    }
+
+    public void setNClob(String namedParameter, Reader reader, long length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setNClob(parameterIndex, reader, length));
+    }
+
+    public void setSQLXML(String namedParameter, SQLXML xmlObject) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setSQLXML(parameterIndex, xmlObject));
+    }
+
+    public void setObject(String namedParameter, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setObject(parameterIndex, x, targetSqlType, scaleOrLength));
+    }
+
+    public void setAsciiStream(String namedParameter, InputStream x, long length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setAsciiStream(parameterIndex, x, length));
+    }
+
+    public void setBinaryStream(String namedParameter, InputStream x, long length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setBinaryStream(parameterIndex, x, length));
+    }
+
+    public void setCharacterStream(String namedParameter, Reader reader, long length) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setCharacterStream(parameterIndex, reader, length));
+    }
+
+    public void setAsciiStream(String namedParameter, InputStream x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setAsciiStream(parameterIndex, x));
+    }
+
+    public void setBinaryStream(String namedParameter, InputStream x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setBinaryStream(parameterIndex, x));
+    }
+
+    public void setCharacterStream(String namedParameter, Reader reader) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setCharacterStream(parameterIndex, reader));
+    }
+
+    public void setNCharacterStream(String namedParameter, Reader value) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setNCharacterStream(parameterIndex, value));
+    }
+
+    public void setClob(String namedParameter, Reader reader) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setClob(parameterIndex, reader));
+    }
+
+    public void setBlob(String namedParameter, InputStream inputStream) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setBlob(parameterIndex, inputStream));
+    }
+
+    public void setNClob(String namedParameter, Reader reader) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setNClob(parameterIndex, reader));
+    }
+
+    public void setObject(String namedParameter, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setObject(parameterIndex, x, targetSqlType, scaleOrLength));
+    }
+
+    public void setObject(String namedParameter, Object x, SQLType targetSqlType) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> ps.setObject(parameterIndex, x, targetSqlType));
+    }
+
+    public void setBooleanNullable(String namedParameter, Boolean x) throws SQLException {
+        if(x == null){
+            setNull(namedParameter, Types.BOOLEAN);
+        } else {
+            setBoolean(namedParameter, x);
+        }
+    }
+
+    public void setByteNullable(String namedParameter, Byte x) throws SQLException {
+        if(x == null){
+            setNull(namedParameter, Types.TINYINT);
+        } else {
+            setByte(namedParameter, x);
+        }
+    }
+
+    public void setShortNullable(String namedParameter, Short x) throws SQLException {
+        if(x == null){
+            setNull(namedParameter, Types.SMALLINT);
+        } else {
+            setShort(namedParameter, x);
+        }
+    }
+
+    public void setIntNullable(String namedParameter, Integer x) throws SQLException {
+        if(x == null){
+            setNull(namedParameter, Types.INTEGER);
+        } else {
+            setInt(namedParameter, x);
+        }
+    }
+
+    public void setLongNullable(String namedParameter, Long x) throws SQLException {
+        if(x == null){
+            setNull(namedParameter, Types.BIGINT);
+        } else {
+            setLong(namedParameter, x);
+        }
+    }
+
+    public void setFloatNullable(String namedParameter, Float x) throws SQLException {
+        if(x == null){
+            setNull(namedParameter, Types.REAL);
+        } else {
+            setFloat(namedParameter, x);
+        }
+    }
+
+    public void setDoubleNullable(String namedParameter, Double x) throws SQLException {
+        if(x == null){
+            setNull(namedParameter, Types.DOUBLE);
+        } else {
+            setDouble(namedParameter, x);
+        }
+    }
+
+    //index setters
 
     public void setBooleanNullable(int parameterIndex, Boolean x) throws SQLException {
         if(x == null){

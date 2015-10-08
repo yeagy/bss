@@ -3,11 +3,14 @@ package cyeagy.dorm;
 import org.h2.jdbcx.JdbcDataSource;
 import org.h2.tools.Server;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -20,32 +23,40 @@ import java.util.Set;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
-public class DORMTest {
-    private static DORM DORM = new DORM();
+public class DormTest {
+    private static Dorm DORM = Dorm.fromDefaults();
     private static Server server;
     private static Connection connection;
 
     @BeforeClass
-    public static void setUp() throws Exception {
+    public static void setUpClass() throws Exception {
         server = Server.createTcpServer().start();
         Class.forName("org.h2.Driver");
         JdbcDataSource dataSource = new JdbcDataSource();
         dataSource.setUrl("jdbc:h2:mem:");
         connection = dataSource.getConnection();
-        String create = new Scanner(DORMTest.class.getResourceAsStream("/sql/test_create.sql"), "UTF-8").useDelimiter("\\A").next();
+        String create = new Scanner(DormTest.class.getResourceAsStream("/sql/test_create.sql"), "UTF-8").useDelimiter("\\A").next();
         Statement statement = connection.createStatement();
         statement.execute(create);
-        statement.close();
-        String insert = new Scanner(DORMTest.class.getResourceAsStream("/sql/test_insert.sql"), "UTF-8").useDelimiter("\\A").next();
-        statement = connection.createStatement();
-        statement.execute(insert);
         statement.close();
     }
 
     @AfterClass
-    public static void tearDown() throws Exception {
+    public static void tearDownClass() throws Exception {
         connection.close();
         server.shutdown();
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        truncateAndInsert();
+    }
+
+    private void truncateAndInsert() throws SQLException {
+        Statement statement = connection.createStatement();
+        String insert = new Scanner(DormTest.class.getResourceAsStream("/sql/test_insert.sql"), "UTF-8").useDelimiter("\\A").next();
+        statement.execute(insert);
+        statement.close();
     }
 
     @Test

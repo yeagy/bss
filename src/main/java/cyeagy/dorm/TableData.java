@@ -9,6 +9,7 @@ import java.util.List;
 
 /**
  * This class analyzes a POJO via reflection to identify table data
+ * this can be created via the SqlGenerator class.
  */
 public class TableData {
     private final String tableName;
