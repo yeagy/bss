@@ -93,7 +93,7 @@ public class AnnotatedTestBean {
 ```
 #### Enchanced JDBC Support
 Dorm provides utilities to make the JDBC you still have to do manually easier.
-Classes BetterPreparedStatement and BetterResultSet feature null-safe primitive setting, array conversion, java 8 time, as well as :named parameters.
+Classes BetterPreparedStatement and BetterResultSet feature null-safe primitive getting/setting, array type conversion, java 8 time, and :named parameters.
 Class SqlSupport features a simple lambda based API as well as a cascading builder object for one line JDBC calls.
 
 Example of method and builder styles:

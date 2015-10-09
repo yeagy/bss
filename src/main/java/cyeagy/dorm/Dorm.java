@@ -3,7 +3,6 @@ package cyeagy.dorm;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,7 +35,7 @@ public class Dorm {
         T result = null;
         final TableData tableData = TableData.from(clazz);
         final String select = GENERATOR.generateSelectSqlTemplate(tableData);
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection.prepareStatement(select))) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, select)) {
             setParameter(ps, key, 1);
             try (final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
                 if (rs.next()) {
@@ -67,7 +66,7 @@ public class Dorm {
         final String select = GENERATOR.generateBulkSelectSqlTemplate(tableData);
         final Set<?> keySet = keys instanceof Set ? (Set<?>) keys : new HashSet<>(keys);
         final Set<T> results = new HashSet<>(keySet.size());
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection.prepareStatement(select))) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, select)) {
             ps.setArray(1, keySet);
             try (final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
                 while (rs.next()) {
@@ -103,7 +102,7 @@ public class Dorm {
         final TableData tableData = TableData.from(entity.getClass());
         final Object pk = tableData.getPrimaryKey().getType().isPrimitive() ? null : readField(tableData.getPrimaryKey(), entity);
         final String insert = GENERATOR.generateInsertSqlTemplate(tableData, pk != null);
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection.prepareStatement(insert, Statement.RETURN_GENERATED_KEYS))) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, insert, true)) {
             int idx = 0;
             if (pk != null) {
                 setParameter(ps, tableData.getPrimaryKey(), entity, ++idx);
@@ -140,7 +139,7 @@ public class Dorm {
     public void update(Connection connection, Object entity) throws Exception {
         final TableData tableData = TableData.from(entity.getClass());
         final String update = GENERATOR.generateUpdateSqlTemplate(tableData);
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection.prepareStatement(update))) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, update)) {
             int idx = 0;
             for (Field field : tableData.getColumns()) {
                 setParameter(ps, field, entity, ++idx);
@@ -161,7 +160,7 @@ public class Dorm {
     public void delete(Connection connection, Object key, Class<?> clazz) throws Exception {
         final TableData tableData = TableData.from(clazz);
         final String delete = GENERATOR.generateDeleteSqlTemplate(tableData);
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection.prepareStatement(delete))) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, delete)) {
             setParameter(ps, key, 1);
             ps.execute();
         }

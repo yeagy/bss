@@ -92,8 +92,8 @@ public class BetterPreparedStatement implements PreparedStatement {
      * @return BetterPreparedStatement
      * @throws SQLException
      */
-    public static BetterPreparedStatement from(Connection connection, String sql) throws SQLException {
-        return from(connection, sql, false);
+    public static BetterPreparedStatement create(Connection connection, String sql) throws SQLException {
+        return create(connection, sql, false);
     }
 
     /**
@@ -105,7 +105,7 @@ public class BetterPreparedStatement implements PreparedStatement {
      * @return BetterPreparedStatement
      * @throws SQLException
      */
-    public static BetterPreparedStatement from(Connection connection, String sql, boolean returnGeneratedKeys) throws SQLException {
+    public static BetterPreparedStatement create(Connection connection, String sql, boolean returnGeneratedKeys) throws SQLException {
         Objects.requireNonNull(sql);
         Objects.requireNonNull(connection);
         NamedParameters named = processNamedParameters(sql);
@@ -125,44 +125,42 @@ public class BetterPreparedStatement implements PreparedStatement {
      * @return named param info. null if none detected.
      */
     private static NamedParameters processNamedParameters(String sql) {
-        if (!sql.contains("?")) {
-            if (sql.contains(":")) {
-                StringBuilder processedSql = new StringBuilder(sql.length());
-                Map<String, List<Integer>> indices = new HashMap<>();
-                int idx = 1;
-                boolean inSingleQuote = false;
-                boolean inDoubleQuote = false;
-                for (int i = 0; i < sql.length(); i++) {
-                    char c = sql.charAt(i);
-                    if (inSingleQuote) {
-                        if (c == '\'') {
-                            inSingleQuote = false;
-                        }
-                    } else if (inDoubleQuote) {
-                        if (c == '"') {
-                            inDoubleQuote = false;
-                        }
-                    } else {
-                        if (c == '\'') {
-                            inSingleQuote = true;
-                        } else if (c == '"') {
-                            inDoubleQuote = true;
-                        } else if (c == ':' && (i + 1 < sql.length()) && Character.isJavaIdentifierStart(sql.charAt(i + 1))) {
-                            int j = i + 2;
-                            while (j < sql.length() && Character.isJavaIdentifierPart(sql.charAt(j))) {
-                                j++;
-                            }
-                            String name = sql.substring(i + 1, j);
-                            c = '?';
-                            i += name.length();
-                            multimapPut(indices, name, idx++);
-                        }
+        if (!sql.contains("?") && sql.contains(":")) {
+            StringBuilder processedSql = new StringBuilder(sql.length());
+            Map<String, List<Integer>> indices = new HashMap<>();
+            int idx = 1;
+            boolean inSingleQuote = false;
+            boolean inDoubleQuote = false;
+            for (int i = 0; i < sql.length(); i++) {
+                char c = sql.charAt(i);
+                if (inSingleQuote) {
+                    if (c == '\'') {
+                        inSingleQuote = false;
                     }
-                    processedSql.append(c);
+                } else if (inDoubleQuote) {
+                    if (c == '"') {
+                        inDoubleQuote = false;
+                    }
+                } else {
+                    if (c == '\'') {
+                        inSingleQuote = true;
+                    } else if (c == '"') {
+                        inDoubleQuote = true;
+                    } else if (c == ':' && (i + 1 < sql.length()) && Character.isJavaIdentifierStart(sql.charAt(i + 1))) {
+                        int j = i + 2;
+                        while (j < sql.length() && Character.isJavaIdentifierPart(sql.charAt(j))) {
+                            j++;
+                        }
+                        String name = sql.substring(i + 1, j);
+                        c = '?';
+                        i += name.length();
+                        multimapPut(indices, name, idx++);
+                    }
                 }
-                if (!indices.isEmpty()) {
-                    return new NamedParameters(sql, processedSql.toString(), indices);
-                }
+                processedSql.append(c);
+            }
+            if (!indices.isEmpty()) {
+                return new NamedParameters(sql, processedSql.toString(), indices);
             }
         }
         return null;

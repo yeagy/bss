@@ -22,7 +22,7 @@ public class SqlSupport {
      * @param connection db connection. close it yourself
      * @param sql        sql template
      * @param binding    bind values to the prepared statement (optional)
-     * @param mapping    map values from the result set
+     * @param mapping    map values create the result set
      * @param <T>        entity type
      * @return entity or null
      * @throws SQLException
@@ -32,7 +32,7 @@ public class SqlSupport {
         Objects.requireNonNull(sql, "sql is null");
         Objects.requireNonNull(mapping, "result mapping is null");
         T entity = null;
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql)) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql)) {
             if (binding != null) {
                 binding.bind(ps);
             }
@@ -51,7 +51,7 @@ public class SqlSupport {
      * @param connection db connection. close it yourself
      * @param sql        sql template
      * @param binding    bind values to the prepared statement (optional)
-     * @param mapping    map values from the result set
+     * @param mapping    map values create the result set
      * @param <T>        entity type
      * @return list of entity or empty list
      * @throws SQLException
@@ -61,7 +61,7 @@ public class SqlSupport {
         Objects.requireNonNull(sql, "sql is null");
         Objects.requireNonNull(mapping, "result mapping is null");
         final List<T> entities = new ArrayList<>();
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql)) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql)) {
             if (binding != null) {
                 binding.bind(ps);
             }
@@ -81,8 +81,8 @@ public class SqlSupport {
      * @param connection    db connection. close it yourself
      * @param sql           sql template
      * @param binding       bind values to the prepared statement (optional)
-     * @param resultMapping map values from the result set
-     * @param keyMapping    map key from the result set
+     * @param resultMapping map values create the result set
+     * @param keyMapping    map key create the result set
      * @param <K>           key type
      * @param <T>           entity type
      * @return map of entities by key or empty map
@@ -94,7 +94,7 @@ public class SqlSupport {
         Objects.requireNonNull(resultMapping, "result mapping is null");
         Objects.requireNonNull(keyMapping, "key mapping is null");
         final Map<K, T> map = new HashMap<>();
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql)) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql)) {
             if (binding != null) {
                 binding.bind(ps);
             }
@@ -120,7 +120,7 @@ public class SqlSupport {
     public int update(Connection connection, String sql, QueryBinding binding) throws SQLException {
         Objects.requireNonNull(connection, "connection is null");
         Objects.requireNonNull(sql, "sql is null");
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql)) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql)) {
             if (binding != null) {
                 binding.bind(ps);
             }
@@ -143,7 +143,7 @@ public class SqlSupport {
         Objects.requireNonNull(sql, "sql is null");
         Objects.requireNonNull(binding, "query binding is null");
         K key = null;
-        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql, true)) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql, true)) {
             binding.bind(ps);
             ps.executeUpdate();
             try (final BetterResultSet rs = BetterResultSet.from(ps.getGeneratedKeys())) {
