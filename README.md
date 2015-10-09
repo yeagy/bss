@@ -92,7 +92,7 @@ public class AnnotatedTestBean {
 }
 ```
 #### Enchanced JDBC Support
-Dorm provides utilities to make the JDBC you still have to do manually easier.
+Dorm provides utilities to ease the JDBC you still have to do manually.
 Classes BetterPreparedStatement and BetterResultSet feature null-safe primitive getting/setting, array type conversion, java 8 time, and :named parameters.
 Class SqlSupport features a simple lambda based API as well as a cascading builder object for one line JDBC calls.
 
@@ -137,7 +137,18 @@ final int rowsDeleted = SQL_SUPPORT.builder(delete)
         .executeUpdate(connection);
 assertThat(rowsDeleted, equalTo(1));
 ```
-You can use the SqlGenerator class to generate CREATE TABLE and CRUD based on your POJO.<br/>
+Class SqlTransaction provides one line transactions with lambdas.
+``` java
+final TestBean testBean = SqlTransaction.returning(conn -> {
+    final TestBean insert = DORM.insert(conn, new TestBean(null, Long.MAX_VALUE, "test string", Timestamp.from(Instant.now())));
+    DORM.update(conn, new TestBean(insert.getTestKey(), insert.getSomeLong(), "changed string", insert.getSomeDtm()));
+    return DORM.select(conn, insert.getTestKey(), TestBean.class);
+}).execute(connection);
+assertNotNull(testBean);
+assertThat(testBean.getSomeString(), equalTo("changed string"));
+```
+
+Class SqlGenerator generates CREATE TABLE and CRUD based on your POJO.<br/>
 Supports both ? parameters and :named parameters.
 ``` java
 SqlGenerator GENERATOR = SqlGenerator.fromDefaults();
