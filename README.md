@@ -15,7 +15,7 @@ As such, it can work on POJO's without need for annotations if a simple conventi
 Annotations can be used to stray from convention.
 
 Example table (postgres syntax):
-```
+``` sql
 CREATE TABLE test_bean (
   test_key BIGSERIAL PRIMARY KEY,
   some_long BIGINT,
@@ -24,7 +24,7 @@ CREATE TABLE test_bean (
 );
 ```
 Example POJO:
-```
+``` java
 import java.sql.Timestamp;
 
 public class TestBean {
@@ -47,7 +47,7 @@ public class TestBean {
 }
 ```
 Dorm usage:
-```
+``` java
 Dorm DORM = Dorm.fromDefaults();
 
 TestBean bean = new TestBean(null, Long.MAX_VALUE, "test string", Timestamp.from(Instant.now()));
@@ -68,7 +68,7 @@ result = DORM.select(connection, result.getTestKey(), TestBean.class);
 assertNull(result);
 ```
 Annotation example:
-```
+``` java
 import java.sql.Timestamp;
 
 @Table(name = "test_bean", schema = "")
@@ -97,7 +97,7 @@ Classes BetterPreparedStatement and BetterResultSet feature null-safe primitive 
 Class SqlSupport features a simple lambda based API as well as a cascading builder object for one line JDBC calls.
 
 Example of method and builder styles:
-```
+``` java
 SqlSupport SQL_SUPPORT = SqlSupport.fromDefaults();
 final Timestamp now = Timestamp.from(Instant.now());
 
@@ -139,7 +139,7 @@ assertThat(rowsDeleted, equalTo(1));
 ```
 You can use the SqlGenerator class to generate CREATE TABLE and CRUD based on your POJO.<br/>
 Supports both ? parameters and :named parameters.
-```
+``` java
 SqlGenerator GENERATOR = SqlGenerator.fromDefaults();
 TableData tableData = TableData.from(TestBean.class);
 String insert = GENERATOR.generateInsertSqlTemplateNamed(tableData);
@@ -148,7 +148,7 @@ String update = GENERATOR.generateUpdateSqlTemplate(tableData);
 String delete = GENERATOR.generateDeleteSqlTemplateNamed(tableData);
 String create = GENERATOR.generateCreateStatement(tableData);
 ```
-```
+``` sql
 INSERT INTO test_bean (some_long, some_string, some_dtm) VALUES (:some_long, :some_string, :some_dtm)
 SELECT test_key, some_long, some_string, some_dtm FROM test_bean WHERE test_key = ?
 UPDATE test_bean SET some_long = ?, some_string = ?, some_dtm = ? WHERE test_key = ?
