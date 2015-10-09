@@ -16,7 +16,7 @@ Annotations can be used to stray from convention.
 
 Example table (postgres syntax):
 ```
-CREATE TABLE test_bean(
+CREATE TABLE test_bean (
   test_key BIGSERIAL PRIMARY KEY,
   some_long BIGINT,
   some_string VARCHAR,
@@ -48,6 +48,8 @@ public class TestBean {
 ```
 Dorm usage:
 ```
+Dorm DORM = Dorm.fromDefaults();
+
 TestBean bean = new TestBean(null, Long.MAX_VALUE, "test string", Timestamp.from(Instant.now()));
 TestBean result = DORM.insert(connection, bean);
 assertNotNull(result.getTestKey());
@@ -55,7 +57,7 @@ assertNotNull(result.getTestKey());
 result = DORM.select(connection, result.getTestKey(), TestBean.class);
 assertThat(result.getSomeString(), equalTo(bean.getSomeString()));
 
-DORM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), bean.getSomeInt(), "changed string", bean.getSomeDtm()));
+DORM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), "changed string", bean.getSomeDtm()));
 
 result = DORM.select(connection, result.getTestKey(), TestBean.class);
 assertThat(bean.getSomeString(), not(equalTo(result.getSomeString())));
@@ -90,11 +92,71 @@ public class AnnotatedTestBean {
 }
 ```
 #### Enchanced JDBC Support
-Dorm provides tools to make the JDBC you still have to do manually easier.
-Classes BetterPreparedStatement and BetterResultSet feature null-safe primitive setting, as well as :named parameters.
-Class SqlSupport features a simple lambda based API as well as a Builder object for one line JDBC calls.
+Dorm provides utilities to make the JDBC you still have to do manually easier.
+Classes BetterPreparedStatement and BetterResultSet feature null-safe primitive setting, array conversion, java 8 time, as well as :named parameters.
+Class SqlSupport features a simple lambda based API as well as a cascading builder object for one line JDBC calls.
 
+Example of method and builder styles:
+```
+SqlSupport SQL_SUPPORT = SqlSupport.fromDefaults();
+final Timestamp now = Timestamp.from(Instant.now());
 
+//METHOD STYLE
+String insert = "INSERT INTO test_bean (some_long, some_string, some_dtm) VALUES (:some_long, :some_string, :some_dtm)";
+final Long key = SQL_SUPPORT.insert(connection, insert, ps -> {
+    ps.setLong("some_long", Long.MAX_VALUE);
+    ps.setString("some_string", "test string");
+    ps.setTimestamp("some_dtm", now);
+});
+assertNotNull(key);
+assertThat(key, not(equalTo(0)));
 
-You can use the SqlGenerator class to generate DDL/DML based on your POJO.<br/>
+String select = "SELECT * FROM test_bean WHERE test_key = :test_key";
+final TestBean bean = SQL_SUPPORT.query(connection, select, ps -> ps.setLong("test_key", key),
+        (rs, i) -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getString("some_string"), rs.getTimestamp("some_dtm")));
+assertNotNull(bean);
+assertThat(bean.getSomeLong(), equalTo(Long.MAX_VALUE));
+assertThat(bean.getSomeString(), equalTo("test string"));
+assertThat(bean.getSomeDtm(), equalTo(now));
+
+//BUILDER STYLE
+String update = "UPDATE test_bean SET some_long = :some_long, some_string = :some_string, some_dtm = :some_dtm WHERE test_key = :test_key";
+final int rowsUpdated = SQL_SUPPORT.builder(update)
+        .queryBinding(ps -> {
+            ps.setLong("some_long", bean.getSomeLong());
+            ps.setString("some_string", "changed string");
+            ps.setTimestamp("some_dtm", bean.getSomeDtm());
+            ps.setLong("test_key", key);
+        })
+        .executeUpdate(connection);
+assertThat(rowsUpdated, equalTo(1));
+
+String delete = "DELETE FROM test_bean WHERE test_key = :test_key";
+final int rowsDeleted = SQL_SUPPORT.builder(delete)
+        .queryBinding(ps -> ps.setLong("test_key", key))
+        .executeUpdate(connection);
+assertThat(rowsDeleted, equalTo(1));
+```
+You can use the SqlGenerator class to generate CREATE TABLE and CRUD based on your POJO.<br/>
 Supports both ? parameters and :named parameters.
+```
+SqlGenerator GENERATOR = SqlGenerator.fromDefaults();
+TableData tableData = TableData.from(TestBean.class);
+String insert = GENERATOR.generateInsertSqlTemplateNamed(tableData);
+String select = GENERATOR.generateSelectSqlTemplate(tableData);
+String update = GENERATOR.generateUpdateSqlTemplate(tableData);
+String delete = GENERATOR.generateDeleteSqlTemplateNamed(tableData);
+String create = GENERATOR.generateCreateStatement(tableData);
+```
+```
+INSERT INTO test_bean (some_long, some_string, some_dtm) VALUES (:some_long, :some_string, :some_dtm)
+SELECT test_key, some_long, some_string, some_dtm FROM test_bean WHERE test_key = ?
+UPDATE test_bean SET some_long = ?, some_string = ?, some_dtm = ? WHERE test_key = ?
+DELETE FROM test_bean WHERE test_key = :test_key
+CREATE TABLE test_bean (
+  test_key BIGINT PRIMARY KEY,
+  some_long BIGINT NOT NULL,
+  some_string VARCHAR,
+  some_dtm TIMESTAMP
+)
+```

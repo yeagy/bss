@@ -23,6 +23,9 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -37,7 +40,7 @@ import java.util.Objects;
  * -- Forwards connection create methods
  * -- :named parameters
  */
-public class BetterPreparedStatement implements PreparedStatement{
+public class BetterPreparedStatement implements PreparedStatement {
     private final PreparedStatement ps;
     private final NamedParameters namedParameters;
 
@@ -46,16 +49,25 @@ public class BetterPreparedStatement implements PreparedStatement{
         this.namedParameters = namedParameters;
     }
 
-    private static class NamedParameters{
+    private static class NamedParameters {
+        private final String unprocessedSql;
         private final String processedSql;
         private final Map<String, List<Integer>> indices;
-        private NamedParameters(String processedSql, Map<String, List<Integer>> indices) {
+
+        private NamedParameters(String unprocessedSql, String processedSql, Map<String, List<Integer>> indices) {
+            this.unprocessedSql = unprocessedSql;
             this.processedSql = processedSql;
             this.indices = indices;
         }
+
+        public String getUnprocessedSql() {
+            return unprocessedSql;
+        }
+
         public String getProcessedSql() {
             return processedSql;
         }
+
         public List<Integer> getIndices(String namedParameter) {
             return indices.get(namedParameter);
         }
@@ -63,18 +75,20 @@ public class BetterPreparedStatement implements PreparedStatement{
 
     /**
      * this factory method only supports standard ? parameters.
+     *
      * @param ps PreparedStatement to be wrapped
      * @return BetterPreparedStatement
      */
-    public static BetterPreparedStatement from(PreparedStatement ps){
+    public static BetterPreparedStatement from(PreparedStatement ps) {
         Objects.requireNonNull(ps);
         return new BetterPreparedStatement(ps, null);
     }
 
     /**
      * use this factory method in order to use :named parameters. also works with standard ? params.
+     *
      * @param connection close this yourself.
-     * @param sql your sql query
+     * @param sql        your sql query
      * @return BetterPreparedStatement
      * @throws SQLException
      */
@@ -84,8 +98,9 @@ public class BetterPreparedStatement implements PreparedStatement{
 
     /**
      * use this factory method in order to use :named parameters. also works with standard ? params.
-     * @param connection close this yourself.
-     * @param sql your sql query
+     *
+     * @param connection          close this yourself.
+     * @param sql                 your sql query
      * @param returnGeneratedKeys true if you want to return generated keys
      * @return BetterPreparedStatement
      * @throws SQLException
@@ -94,7 +109,7 @@ public class BetterPreparedStatement implements PreparedStatement{
         Objects.requireNonNull(sql);
         Objects.requireNonNull(connection);
         NamedParameters named = processNamedParameters(sql);
-        if(named != null){
+        if (named != null) {
             sql = named.getProcessedSql();
         }
         final int returnKeys = returnGeneratedKeys ? RETURN_GENERATED_KEYS : NO_GENERATED_KEYS;
@@ -105,12 +120,13 @@ public class BetterPreparedStatement implements PreparedStatement{
      * function copied from http://www.javaworld.com/article/2077706/core-java/named-parameters-for-preparedstatement.html
      * credit to @author adam_crume
      * if this doesn't cut it, consider an ANTLR approach
+     *
      * @param sql potential named parameter sql
      * @return named param info. null if none detected.
      */
     private static NamedParameters processNamedParameters(String sql) {
         if (!sql.contains("?")) {
-            if(sql.contains(":")){
+            if (sql.contains(":")) {
                 StringBuilder processedSql = new StringBuilder(sql.length());
                 Map<String, List<Integer>> indices = new HashMap<>();
                 int idx = 1;
@@ -144,8 +160,8 @@ public class BetterPreparedStatement implements PreparedStatement{
                     }
                     processedSql.append(c);
                 }
-                if(!indices.isEmpty()){
-                    return new NamedParameters(processedSql.toString(), indices);
+                if (!indices.isEmpty()) {
+                    return new NamedParameters(sql, processedSql.toString(), indices);
                 }
             }
         }
@@ -154,26 +170,26 @@ public class BetterPreparedStatement implements PreparedStatement{
 
     private static void multimapPut(Map<String, List<Integer>> map, String s, Integer i) {
         List<Integer> list = map.get(s);
-        if(list == null){
+        if (list == null) {
             list = new ArrayList<>();
             map.put(s, list);
         }
         list.add(i);
     }
 
-    private interface NamedParameterSetter{
+    private interface NamedParameterSetter {
         void set(BetterPreparedStatement ps, int idx) throws SQLException;
     }
 
     private void setNamedParameter(String namedParameter, NamedParameterSetter setter) throws SQLException {
         Objects.requireNonNull(namedParameters);
         final List<Integer> indices = namedParameters.getIndices(namedParameter);
-        if(indices != null){
+        if (indices != null) {
             for (Integer idx : indices) {
                 setter.set(this, idx);
             }
         } else {
-            throw new IllegalStateException("no named parameters detected for sql statement");
+            throw new IllegalStateException(String.format("no named parameter %s found in sql: %s", namedParameter, namedParameters.getUnprocessedSql()));
         }
     }
 
@@ -203,8 +219,8 @@ public class BetterPreparedStatement implements PreparedStatement{
 
     public Array createArray(Object[] elements) throws SQLException {
         Class<?> clazz = elements.getClass().getComponentType();
-        final String sqlType = TypeMappers.CLASS_SQL_TYPE_MAP.get(clazz);
-        if(sqlType == null){
+        final String sqlType = TypeMappers.getSqlType(clazz);
+        if (sqlType == null) {
             throw new SQLException("no sql type found for java class " + clazz.getName());
         }
         return createArrayOf(sqlType, elements);
@@ -214,22 +230,47 @@ public class BetterPreparedStatement implements PreparedStatement{
         return createArray(elements.toArray());
     }
 
-    public <T> void setArray(int parameterIndex, Collection<?> x) throws SQLException {
+    public void setArray(int parameterIndex, Collection<?> x) throws SQLException {
         setArray(parameterIndex, createArray(x));
     }
 
-    public <T> void setArray(String namedParameter, Collection<?> x) throws SQLException {
+    public void setArray(String namedParameter, Collection<?> x) throws SQLException {
         setNamedParameter(namedParameter, (ps, parameterIndex) -> setArray(parameterIndex, x));
     }
 
-    public <T> void setArray(int parameterIndex, Object[] x) throws SQLException {
+    public void setArray(int parameterIndex, Object[] x) throws SQLException {
         setArray(parameterIndex, createArray(x));
     }
 
-    public <T> void setArray(String namedParameter, Object[] x) throws SQLException {
+    public void setArray(String namedParameter, Object[] x) throws SQLException {
         setNamedParameter(namedParameter, (ps, parameterIndex) -> setArray(parameterIndex, x));
     }
 
+    // java 8 time
+
+    public void setTime(int parameterIndex, LocalTime x) throws SQLException {
+        setTime(parameterIndex, x == null ? null : Time.valueOf(x));
+    }
+
+    public void setTime(String namedParameter, LocalTime x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> setTime(parameterIndex, x));
+    }
+
+    public void setDate(int parameterIndex, LocalDate x) throws SQLException {
+        setDate(parameterIndex, x == null ? null : Date.valueOf(x));
+    }
+
+    public void setDate(String namedParameter, LocalDate x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> setDate(parameterIndex, x));
+    }
+
+    public void setTimestamp(int parameterIndex, LocalDateTime x) throws SQLException {
+        setTimestamp(parameterIndex, x == null ? null : Timestamp.valueOf(x));
+    }
+
+    public void setTimestamp(String namedParameter, LocalDateTime x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> setTimestamp(parameterIndex, x));
+    }
 
     //additional setters
     //:named setters
@@ -325,7 +366,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     public void setArray(String namedParameter, Array x) throws SQLException {
         setNamedParameter(namedParameter, (ps, parameterIndex) -> setArray(parameterIndex, x));
     }
-    
+
     public void setDate(String namedParameter, Date x, Calendar cal) throws SQLException {
         setNamedParameter(namedParameter, (ps, parameterIndex) -> setDate(parameterIndex, x, cal));
     }
@@ -431,7 +472,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setBooleanNullable(String namedParameter, Boolean x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(namedParameter, Types.BOOLEAN);
         } else {
             setBoolean(namedParameter, x);
@@ -439,7 +480,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setByteNullable(String namedParameter, Byte x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(namedParameter, Types.TINYINT);
         } else {
             setByte(namedParameter, x);
@@ -447,7 +488,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setShortNullable(String namedParameter, Short x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(namedParameter, Types.SMALLINT);
         } else {
             setShort(namedParameter, x);
@@ -455,7 +496,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setIntNullable(String namedParameter, Integer x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(namedParameter, Types.INTEGER);
         } else {
             setInt(namedParameter, x);
@@ -463,7 +504,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setLongNullable(String namedParameter, Long x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(namedParameter, Types.BIGINT);
         } else {
             setLong(namedParameter, x);
@@ -471,7 +512,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setFloatNullable(String namedParameter, Float x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(namedParameter, Types.REAL);
         } else {
             setFloat(namedParameter, x);
@@ -479,7 +520,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setDoubleNullable(String namedParameter, Double x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(namedParameter, Types.DOUBLE);
         } else {
             setDouble(namedParameter, x);
@@ -489,7 +530,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     //index setters
 
     public void setBooleanNullable(int parameterIndex, Boolean x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(parameterIndex, Types.BOOLEAN);
         } else {
             ps.setBoolean(parameterIndex, x);
@@ -497,7 +538,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setByteNullable(int parameterIndex, Byte x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(parameterIndex, Types.TINYINT);
         } else {
             ps.setByte(parameterIndex, x);
@@ -505,7 +546,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setShortNullable(int parameterIndex, Short x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(parameterIndex, Types.SMALLINT);
         } else {
             ps.setShort(parameterIndex, x);
@@ -513,7 +554,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setIntNullable(int parameterIndex, Integer x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(parameterIndex, Types.INTEGER);
         } else {
             ps.setInt(parameterIndex, x);
@@ -521,7 +562,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setLongNullable(int parameterIndex, Long x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(parameterIndex, Types.BIGINT);
         } else {
             ps.setLong(parameterIndex, x);
@@ -529,7 +570,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setFloatNullable(int parameterIndex, Float x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(parameterIndex, Types.REAL);
         } else {
             ps.setFloat(parameterIndex, x);
@@ -537,7 +578,7 @@ public class BetterPreparedStatement implements PreparedStatement{
     }
 
     public void setDoubleNullable(int parameterIndex, Double x) throws SQLException {
-        if(x == null){
+        if (x == null) {
             setNull(parameterIndex, Types.DOUBLE);
         } else {
             ps.setDouble(parameterIndex, x);

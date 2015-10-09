@@ -15,11 +15,11 @@ import static java.util.stream.Collectors.joining;
 public class SqlGenerator {
     private static final Collector<CharSequence, ?, String> COMMA_JOIN = joining(", ");
 
-    public static SqlGenerator fromDefaults(){
+    public static SqlGenerator fromDefaults() {
         return new SqlGenerator();
     }
 
-    private SqlGenerator(){}
+    private SqlGenerator() { }
 
     public String generateSelectSqlTemplate(TableData table) {
         return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), "?");
@@ -30,7 +30,7 @@ public class SqlGenerator {
         return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), pk, ":" + pk);
     }
 
-    private String formatSelect(String columns, String tableName, String primaryKey, String primaryKeyValue){
+    private String formatSelect(String columns, String tableName, String primaryKey, String primaryKeyValue) {
         return String.format("SELECT %s FROM %s WHERE %s = %s", columns, tableName, primaryKey, primaryKeyValue);
     }
 
@@ -43,7 +43,7 @@ public class SqlGenerator {
         return formatBulkSelect(columnsWithPrimaryKey(table), table.getTableName(), pk, ":" + pk);
     }
 
-    private String formatBulkSelect(String columns, String tableName, String primaryKey, String primaryKeyValue){
+    private String formatBulkSelect(String columns, String tableName, String primaryKey, String primaryKeyValue) {
         return String.format("SELECT %s FROM %s WHERE %s IN (SELECT unnest(%s))", columns, tableName, primaryKey, primaryKeyValue);
     }
 
@@ -58,7 +58,7 @@ public class SqlGenerator {
     public String generateInsertSqlTemplate(TableData table, boolean includePrimaryKey) {
         String columns = columns(table);
         int numCols = table.getColumns().size();
-        if(includePrimaryKey){
+        if (includePrimaryKey) {
             columns = getColumnName(table.getPrimaryKey()) + ", " + columns;
             numCols++;
         }
@@ -68,14 +68,14 @@ public class SqlGenerator {
     public String generateInsertSqlTemplateNamed(TableData table, boolean includePrimaryKey) {
         String columns = columns(table);
         String namedParams = columnsNamedParams(table);
-        if(includePrimaryKey){
+        if (includePrimaryKey) {
             columns = getColumnName(table.getPrimaryKey()) + ", " + columns;
-            namedParams = ":" +  getColumnName(table.getPrimaryKey()) + ", " + columns;
+            namedParams = ":" + getColumnName(table.getPrimaryKey()) + ", " + columns;
         }
         return formatInsert(table.getTableName(), columns, namedParams);
     }
 
-    private String formatInsert(String tableName, String columns, String values){
+    private String formatInsert(String tableName, String columns, String values) {
         return String.format("INSERT INTO %s (%s) VALUES (%s)", tableName, columns, values);
     }
 
@@ -88,7 +88,7 @@ public class SqlGenerator {
         return formatUpdate(table.getTableName(), columnsWithNamedParams(table), pk, ":" + pk);
     }
 
-    private String formatUpdate(String tableName, String columnsAndValues, String primaryKey, String primaryKeyValue){
+    private String formatUpdate(String tableName, String columnsAndValues, String primaryKey, String primaryKeyValue) {
         return String.format("UPDATE %s SET %s WHERE %s = %s", tableName, columnsAndValues, primaryKey, primaryKeyValue);
     }
 
@@ -101,20 +101,20 @@ public class SqlGenerator {
         return formatDelete(table.getTableName(), pk, ":" + pk);
     }
 
-    public String generateCreateStatement(TableData table){
+    public String generateCreateStatement(TableData table) {
         final List<String> columns = new ArrayList<>(table.getColumns().size() + 1);
-        columns.add(getColumnName(table.getPrimaryKey()) + " " + TypeMappers.CLASS_SQL_TYPE_MAP.get(table.getPrimaryKey().getType()) + " PRIMARY KEY");
+        columns.add(getColumnName(table.getPrimaryKey()) + " " + TypeMappers.getSqlType(table.getPrimaryKey().getType()) + " PRIMARY KEY");
         for (Field field : table.getColumns()) {
-            columns.add(getColumnName(field) + " " + TypeMappers.CLASS_SQL_TYPE_MAP.get(field.getType()) + (field.getType().isPrimitive() ? " NOT NULL" : ""));
+            columns.add(getColumnName(field) + " " + TypeMappers.getSqlType(field.getType()) + (field.getType().isPrimitive() ? " NOT NULL" : ""));
         }
         return formatCreate(table.getTableName(), columns);
     }
 
-    private String formatCreate(String tableName, List<String> columns){
+    private String formatCreate(String tableName, List<String> columns) {
         return String.format("CREATE TABLE %s (%s)", tableName, columns.stream().collect(COMMA_JOIN));
     }
 
-    private String formatDelete(String tableName, String primaryKey, String primaryKeyValue){
+    private String formatDelete(String tableName, String primaryKey, String primaryKeyValue) {
         return String.format("DELETE FROM %s WHERE %s = %s", tableName, primaryKey, primaryKeyValue);
     }
 

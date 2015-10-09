@@ -84,8 +84,8 @@ class ReflectUtil {
         return constructor.newInstance();
     }
 
-    static void setAccessible(AccessibleObject o){
-        if(!o.isAccessible()){
+    static void setAccessible(AccessibleObject o) {
+        if (!o.isAccessible()) {
             o.setAccessible(true);
         }
     }

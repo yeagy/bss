@@ -34,26 +34,26 @@ public class TableData {
         return columns;
     }
 
-    public static TableData analyze(Class<?> clazz){
-        return analyze(clazz, true);
+    public static TableData from(Class<?> clazz) {
+        return from(clazz, true);
     }
 
-    public static TableData analyze(Class<?> clazz, boolean forceAccessible){
+    public static TableData from(Class<?> clazz, boolean forceAccessible) {
         final String tableName = getTableName(clazz);
         final Field[] fields = clazz.getDeclaredFields();
         final List<Field> columns = new ArrayList<>(fields.length);
         Field primaryKey = null;
         for (Field field : fields) {
-            if(field.isAnnotationPresent(Id.class)){
+            if (field.isAnnotationPresent(Id.class)) {
                 primaryKey = field;
             } else {
                 columns.add(field);
             }
-            if(forceAccessible){
+            if (forceAccessible) {
                 ReflectUtil.setAccessible(field);
             }
         }
-        if(primaryKey == null){
+        if (primaryKey == null) {
             primaryKey = fields[0];
             columns.remove(0);//remove the pk from the column list
         }
@@ -65,10 +65,10 @@ public class TableData {
         return camelToSnake(annotation == null ? field.getName() : annotation.name());
     }
 
-    public static String getTableName(Class<?> clazz){
+    public static String getTableName(Class<?> clazz) {
         final Table annotation = clazz.getDeclaredAnnotation(Table.class);
-        if(annotation != null){
-            if(annotation.schema() == null || annotation.schema().isEmpty()){
+        if (annotation != null) {
+            if (annotation.schema() == null || annotation.schema().isEmpty()) {
                 return annotation.name();
             }
             return annotation.schema() + "." + annotation.name();
@@ -76,13 +76,13 @@ public class TableData {
         return camelToSnake(clazz.getSimpleName());
     }
 
-    private static String camelToSnake(String camel){
+    private static String camelToSnake(String camel) {
         final StringBuilder sb = new StringBuilder();
         final StringCharacterIterator iter = new StringCharacterIterator(camel);
         boolean lastLower = false;
-        for(char c = iter.first(); c != CharacterIterator.DONE; c = iter.next()){
-            if(Character.isUpperCase(c)){
-                if(lastLower){
+        for (char c = iter.first(); c != CharacterIterator.DONE; c = iter.next()) {
+            if (Character.isUpperCase(c)) {
+                if (lastLower) {
                     sb.append('_');
                 }
                 sb.append(Character.toLowerCase(c));

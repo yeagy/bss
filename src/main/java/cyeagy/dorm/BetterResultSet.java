@@ -20,6 +20,9 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.Objects;
@@ -29,10 +32,10 @@ import java.util.Objects;
  * -- Null-safe primitive get methods
  * -- SQL arrays casted to their java type
  */
-public class BetterResultSet implements ResultSet{
+public class BetterResultSet implements ResultSet {
     private final ResultSet rs;
 
-    public static BetterResultSet from(ResultSet rs){
+    public static BetterResultSet from(ResultSet rs) {
         return new BetterResultSet(rs);
     }
 
@@ -52,6 +55,40 @@ public class BetterResultSet implements ResultSet{
         final Array v = getArray(columnLabel);
         return wasNull() ? null : (T[]) v.getArray();
     }
+
+    //java 8 time
+
+    public LocalTime getLocalTime(int columnIndex) throws SQLException {
+        final Time time = getTime(columnIndex);
+        return time == null ? null : time.toLocalTime();
+    }
+
+    public LocalTime getLocalTime(String columnLabel) throws SQLException {
+        final Time time = getTime(columnLabel);
+        return time == null ? null : time.toLocalTime();
+    }
+
+    public LocalDate getLocalDate(int columnIndex) throws SQLException {
+        final Date date = getDate(columnIndex);
+        return date == null ? null : date.toLocalDate();
+    }
+
+    public LocalDate getLocalDate(String columnLabel) throws SQLException {
+        final Date date = getDate(columnLabel);
+        return date == null ? null : date.toLocalDate();
+    }
+
+    public LocalDateTime getLocalDateTime(int columnIndex) throws SQLException {
+        final Timestamp timestamp = getTimestamp(columnIndex);
+        return timestamp == null ? null : timestamp.toLocalDateTime();
+    }
+
+    public LocalDateTime getLocalDateTime(String columnLabel) throws SQLException {
+        final Timestamp timestamp = getTimestamp(columnLabel);
+        return timestamp == null ? null : timestamp.toLocalDateTime();
+    }
+
+    //nullable getters
 
     public Boolean getBooleanNullable(int columnIndex) throws SQLException {
         final boolean v = getBoolean(columnIndex);

@@ -10,19 +10,20 @@ import java.util.Objects;
 
 public class SqlSupport {
 
-    public static SqlSupport fromDefaults(){
+    public static SqlSupport fromDefaults() {
         return new SqlSupport();
     }
 
-    private SqlSupport(){}
+    private SqlSupport() { }
 
     /**
      * primarily for single SELECT. also useful for INSERT/UPDATE with RETURNING
+     *
      * @param connection db connection. close it yourself
-     * @param sql sql template
-     * @param binding bind values to the prepared statement (optional)
-     * @param mapping map values from the result set
-     * @param <T> entity type
+     * @param sql        sql template
+     * @param binding    bind values to the prepared statement (optional)
+     * @param mapping    map values from the result set
+     * @param <T>        entity type
      * @return entity or null
      * @throws SQLException
      */
@@ -32,10 +33,10 @@ public class SqlSupport {
         Objects.requireNonNull(mapping, "result mapping is null");
         T entity = null;
         try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql)) {
-            if(binding != null) {
+            if (binding != null) {
                 binding.bind(ps);
             }
-            try(final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
+            try (final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
                 if (rs.next()) {
                     entity = mapping.map(rs, 0);
                 }
@@ -46,11 +47,12 @@ public class SqlSupport {
 
     /**
      * primarily for bulk SELECT. also useful for INSERT/UPDATE with RETURNING
+     *
      * @param connection db connection. close it yourself
-     * @param sql sql template
-     * @param binding bind values to the prepared statement (optional)
-     * @param mapping map values from the result set
-     * @param <T> entity type
+     * @param sql        sql template
+     * @param binding    bind values to the prepared statement (optional)
+     * @param mapping    map values from the result set
+     * @param <T>        entity type
      * @return list of entity or empty list
      * @throws SQLException
      */
@@ -60,10 +62,10 @@ public class SqlSupport {
         Objects.requireNonNull(mapping, "result mapping is null");
         final List<T> entities = new ArrayList<>();
         try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql)) {
-            if(binding != null) {
+            if (binding != null) {
                 binding.bind(ps);
             }
-            try(final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
+            try (final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
                 int i = 0;
                 while (rs.next()) {
                     entities.add(mapping.map(rs, i++));
@@ -75,13 +77,14 @@ public class SqlSupport {
 
     /**
      * primarily for bulk SELECT. also useful for INSERT/UPDATE with RETURNING
-     * @param connection db connection. close it yourself
-     * @param sql sql template
-     * @param binding bind values to the prepared statement (optional)
+     *
+     * @param connection    db connection. close it yourself
+     * @param sql           sql template
+     * @param binding       bind values to the prepared statement (optional)
      * @param resultMapping map values from the result set
-     * @param keyMapping map key from the result set
-     * @param <K> key type
-     * @param <T> entity type
+     * @param keyMapping    map key from the result set
+     * @param <K>           key type
+     * @param <T>           entity type
      * @return map of entities by key or empty map
      * @throws SQLException
      */
@@ -92,10 +95,10 @@ public class SqlSupport {
         Objects.requireNonNull(keyMapping, "key mapping is null");
         final Map<K, T> map = new HashMap<>();
         try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql)) {
-            if(binding != null) {
+            if (binding != null) {
                 binding.bind(ps);
             }
-            try(final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
+            try (final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
                 int i = 0;
                 while (rs.next()) {
                     map.put(keyMapping.map(rs, i), resultMapping.map(rs, i++));
@@ -107,17 +110,18 @@ public class SqlSupport {
 
     /**
      * primarily for INSERT/UPDATE/DELETE
+     *
      * @param connection db connection. close it yourself
-     * @param sql sql template
-     * @param binding bind values to the prepared statement (optional)
+     * @param sql        sql template
+     * @param binding    bind values to the prepared statement (optional)
      * @return number of rows updated
      * @throws SQLException
      */
     public int update(Connection connection, String sql, QueryBinding binding) throws SQLException {
         Objects.requireNonNull(connection, "connection is null");
         Objects.requireNonNull(sql, "sql is null");
-        try(final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql)){
-            if(binding != null) {
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql)) {
+            if (binding != null) {
                 binding.bind(ps);
             }
             return ps.executeUpdate();
@@ -126,10 +130,11 @@ public class SqlSupport {
 
     /**
      * primarily for single INSERT returning the auto-generated key
+     *
      * @param connection db connection. close it yourself
-     * @param sql sql template
-     * @param binding bind values to the prepared statement
-     * @param <K> key type
+     * @param sql        sql template
+     * @param binding    bind values to the prepared statement
+     * @param <K>        key type
      * @return key or null
      * @throws SQLException
      */
@@ -138,11 +143,11 @@ public class SqlSupport {
         Objects.requireNonNull(sql, "sql is null");
         Objects.requireNonNull(binding, "query binding is null");
         K key = null;
-        try(final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql, true)){
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.from(connection, sql, true)) {
             binding.bind(ps);
             ps.executeUpdate();
-            try(final BetterResultSet rs = BetterResultSet.from(ps.getGeneratedKeys())){
-                if(rs.next()){
+            try (final BetterResultSet rs = BetterResultSet.from(ps.getGeneratedKeys())) {
+                if (rs.next()) {
                     //noinspection unchecked
                     key = (K) rs.getObject(1);
                 }
@@ -174,47 +179,47 @@ public class SqlSupport {
 
     //all cascading builders below
 
-    public Builder builder(String sql){
+    public Builder builder(String sql) {
         return new BuilderImpl(sql);
     }
 
-    public interface Builder{
+    public interface Builder {
         int executeUpdate(Connection connection) throws SQLException;
         BoundBuilder queryBinding(QueryBinding queryBinding);
         <T> ResultBuilder<T> resultMapping(ResultMapping<T> resultMapping);
         <T> ResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping);
     }
 
-    public interface BoundBuilder{
+    public interface BoundBuilder {
         int executeUpdate(Connection connection) throws SQLException;
         <K> K executeInsert(Connection connection) throws SQLException;
         <T> BoundResultBuilder<T> resultMapping(ResultMapping<T> resultMapping);
         <T> BoundResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping);
     }
 
-    public interface ResultBuilder<T>{
+    public interface ResultBuilder<T> {
         T executeQuery(Connection connection) throws SQLException;
         List<T> executeQueryList(Connection connection) throws SQLException;
         BoundResultBuilder<T> queryBinding(QueryBinding queryBinding);
         <K> KeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping);
     }
 
-    public interface BoundResultBuilder<T>{
+    public interface BoundResultBuilder<T> {
         T executeQuery(Connection connection) throws SQLException;
         List<T> executeQueryList(Connection connection) throws SQLException;
         <K> BoundKeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping);
     }
 
-    public interface KeyedResultBuilder<K, T>{
+    public interface KeyedResultBuilder<K, T> {
         Map<K, T> executeQueryMapped(Connection connection, ResultMapping<K> keyMapping) throws SQLException;
         BoundKeyedResultBuilder<K, T> queryBinding(QueryBinding queryBinding);
     }
 
-    public interface BoundKeyedResultBuilder<K, T>{
+    public interface BoundKeyedResultBuilder<K, T> {
         Map<K, T> executeQueryMapped(Connection connection, ResultMapping<K> keyMapping) throws SQLException;
     }
 
-    private static class BuilderImpl implements Builder{
+    private static class BuilderImpl implements Builder {
         private static final SqlSupport SQL_SUPPORT = new SqlSupport();
         private final String sql;
 
@@ -243,7 +248,7 @@ public class SqlSupport {
         }
     }
 
-    private static class BoundBuilderImpl implements BoundBuilder{
+    private static class BoundBuilderImpl implements BoundBuilder {
         private final String sql;
         private final QueryBinding queryBinding;
 
@@ -273,7 +278,7 @@ public class SqlSupport {
         }
     }
 
-    private static class ResultBuilderImpl<T> implements ResultBuilder<T>{
+    private static class ResultBuilderImpl<T> implements ResultBuilder<T> {
         private final String sql;
         private final ResultMapping<T> resultMapping;
 
@@ -303,7 +308,7 @@ public class SqlSupport {
         }
     }
 
-    private static class BoundResultBuilderImpl<T> implements BoundResultBuilder<T>{
+    private static class BoundResultBuilderImpl<T> implements BoundResultBuilder<T> {
         private final String sql;
         private final QueryBinding queryBinding;
         private final ResultMapping<T> resultMapping;
@@ -330,7 +335,7 @@ public class SqlSupport {
         }
     }
 
-    private static class KeyedResultBuilderImpl<K, T> implements KeyedResultBuilder<K, T>{
+    private static class KeyedResultBuilderImpl<K, T> implements KeyedResultBuilder<K, T> {
         private final String sql;
         private final ResultMapping<T> resultMapping;
         private final ResultMapping<K> keyMapping;
@@ -352,7 +357,7 @@ public class SqlSupport {
         }
     }
 
-    private static class BoundKeyedResultBuilderImpl<K, T> implements BoundKeyedResultBuilder<K, T>{
+    private static class BoundKeyedResultBuilderImpl<K, T> implements BoundKeyedResultBuilder<K, T> {
         private final String sql;
         private final QueryBinding queryBinding;
         private final ResultMapping<T> resultMapping;

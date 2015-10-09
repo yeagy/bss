@@ -20,30 +20,54 @@ import static cyeagy.dorm.ReflectUtil.*;
  * This class is why I love java 8! No more if/else forests!
  */
 class TypeMappers {
-    static final Map<Class<?>, String> CLASS_SQL_TYPE_MAP = initClassTypeMap();
-    static final Map<Class<?>, FieldCopier> FIELD_COPIER_MAP = initFieldCopierMap();
-    static final Map<Class<?>, FieldResultWriter> FIELD_RESULT_WRITER_MAP = initFieldResultWriterMap();
-    static final Map<Class<?>, ObjectParamSetter> OBJECT_PARAM_SETTER_MAP = initObjectParamSetterMap();
-    static final Map<Class<?>, FieldParamSetter> FIELD_PARAM_SETTER_MAP = initFieldParamSetterMap();
+    private static final Map<Class<?>, String> CLASS_SQL_TYPE_MAP = initClassTypeMap();
+    private static final Map<Class<?>, FieldCopier> FIELD_COPIER_MAP = initFieldCopierMap();
+    private static final Map<Class<?>, FieldResultWriter> FIELD_RESULT_WRITER_MAP = initFieldResultWriterMap();
+    private static final Map<Class<?>, ObjectParamSetter> OBJECT_PARAM_SETTER_MAP = initObjectParamSetterMap();
+    private static final Map<Class<?>, FieldParamSetter> FIELD_PARAM_SETTER_MAP = initFieldParamSetterMap();
 
-    @FunctionalInterface interface FieldCopier{
+    static String getSqlType(Class<?> clazz) {
+        return CLASS_SQL_TYPE_MAP.get(clazz);
+    }
+
+    static FieldCopier getFieldCopier(Class<?> clazz) {
+        return FIELD_COPIER_MAP.get(clazz);
+    }
+
+    static FieldResultWriter getFieldResultWriter(Class<?> clazz) {
+        return FIELD_RESULT_WRITER_MAP.get(clazz);
+    }
+
+    static ObjectParamSetter getObjectParamSetter(Class<?> clazz) {
+        return OBJECT_PARAM_SETTER_MAP.get(clazz);
+    }
+
+    static FieldParamSetter getFieldParamSetter(Class<?> clazz) {
+        return FIELD_PARAM_SETTER_MAP.get(clazz);
+    }
+
+    @FunctionalInterface
+    interface FieldCopier {
         void copy(Field field, Object target, Object origin) throws IllegalAccessException;
     }
 
-    @FunctionalInterface interface FieldResultWriter{
+    @FunctionalInterface
+    interface FieldResultWriter {
         void write(BetterResultSet rs, Field field, Object target, Integer idx) throws SQLException, IllegalAccessException;
     }
 
-    @FunctionalInterface interface ObjectParamSetter{
+    @FunctionalInterface
+    interface ObjectParamSetter {
         void set(BetterPreparedStatement ps, Object value, int idx) throws SQLException;
     }
 
-    @FunctionalInterface interface FieldParamSetter{
+    @FunctionalInterface
+    interface FieldParamSetter {
         void set(BetterPreparedStatement ps, Field field, Object target, int idx) throws IllegalAccessException, SQLException;
     }
 
     //https://db.apache.org/ojb/docu/guides/jdbc-types.html
-    private static Map<Class<?>, String> initClassTypeMap(){
+    private static Map<Class<?>, String> initClassTypeMap() {
         final Map<Class<?>, String> map = new HashMap<>();
         map.put(Long.class, "BIGINT");
         map.put(Long.TYPE, "BIGINT");
@@ -96,7 +120,7 @@ class TypeMappers {
         map.put(Byte.TYPE, (rs, field, target, idx) -> writeByte(field, target, idx == null ? rs.getByte(TableData.getColumnName(field)) : rs.getByte(idx)));
         map.put(Character.TYPE, (rs, field, target, idx) -> {
             final String s = idx == null ? rs.getString(TableData.getColumnName(field)) : rs.getString(idx);
-            if(s != null) {
+            if (s != null) {
                 if (s.length() != 1) {
                     throw new IllegalStateException("result set data for character type was longer than length 1. column: " + TableData.getColumnName(field));
                 }
@@ -126,7 +150,7 @@ class TypeMappers {
         return Collections.unmodifiableMap(map);
     }
 
-    private static Map<Class<?>, FieldParamSetter> initFieldParamSetterMap(){
+    private static Map<Class<?>, FieldParamSetter> initFieldParamSetterMap() {
         final Map<Class<?>, FieldParamSetter> map = new HashMap<>();
         map.put(Long.TYPE, (ps, field, target, idx) -> ps.setLong(idx, readLong(field, target)));
         map.put(Long.class, (ps, field, target, idx) -> ps.setLongNullable(idx, (Long) readField(field, target)));
