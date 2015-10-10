@@ -93,17 +93,17 @@ public class AnnotatedTestBean {
 ```
 #### Enchanced JDBC Support
 Dorm provides utilities to ease the JDBC you still have to do manually.
-Classes BetterPreparedStatement and BetterResultSet feature null-safe primitive getting/setting, array type conversion, java 8 time, and :named parameters.
+BetterPreparedStatement and BetterResultSet classes feature null-safe primitive getting/setting, array type conversion, java 8 time, and :named parameters.
 Class SqlSupport features a simple lambda based API as well as a cascading builder object for one line JDBC calls.
 
 Example of method and builder styles:
 ``` java
 SqlSupport SQL_SUPPORT = SqlSupport.fromDefaults();
-final Timestamp now = Timestamp.from(Instant.now());
+Timestamp now = Timestamp.from(Instant.now());
 
 //METHOD STYLE
 String insert = "INSERT INTO test_bean (some_long, some_string, some_dtm) VALUES (:some_long, :some_string, :some_dtm)";
-final Long key = SQL_SUPPORT.insert(connection, insert, ps -> {
+Long key = SQL_SUPPORT.insert(connection, insert, ps -> {
     ps.setLong("some_long", Long.MAX_VALUE);
     ps.setString("some_string", "test string");
     ps.setTimestamp("some_dtm", now);
@@ -112,7 +112,7 @@ assertNotNull(key);
 assertThat(key, not(equalTo(0)));
 
 String select = "SELECT * FROM test_bean WHERE test_key = :test_key";
-final TestBean bean = SQL_SUPPORT.query(connection, select, ps -> ps.setLong("test_key", key),
+TestBean bean = SQL_SUPPORT.query(connection, select, ps -> ps.setLong("test_key", key),
         (rs, i) -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getString("some_string"), rs.getTimestamp("some_dtm")));
 assertNotNull(bean);
 assertThat(bean.getSomeLong(), equalTo(Long.MAX_VALUE));
@@ -121,7 +121,7 @@ assertThat(bean.getSomeDtm(), equalTo(now));
 
 //BUILDER STYLE
 String update = "UPDATE test_bean SET some_long = :some_long, some_string = :some_string, some_dtm = :some_dtm WHERE test_key = :test_key";
-final int rowsUpdated = SQL_SUPPORT.builder(update)
+int rowsUpdated = SQL_SUPPORT.builder(update)
         .queryBinding(ps -> {
             ps.setLong("some_long", bean.getSomeLong());
             ps.setString("some_string", "changed string");
@@ -132,15 +132,15 @@ final int rowsUpdated = SQL_SUPPORT.builder(update)
 assertThat(rowsUpdated, equalTo(1));
 
 String delete = "DELETE FROM test_bean WHERE test_key = :test_key";
-final int rowsDeleted = SQL_SUPPORT.builder(delete)
+int rowsDeleted = SQL_SUPPORT.builder(delete)
         .queryBinding(ps -> ps.setLong("test_key", key))
         .executeUpdate(connection);
 assertThat(rowsDeleted, equalTo(1));
 ```
 Class SqlTransaction provides one line transactions with lambdas.
 ``` java
-final TestBean testBean = SqlTransaction.returning(conn -> {
-    final TestBean insert = DORM.insert(conn, new TestBean(null, Long.MAX_VALUE, "test string", Timestamp.from(Instant.now())));
+TestBean testBean = SqlTransaction.returning(conn -> {
+    TestBean insert = DORM.insert(conn, new TestBean(null, Long.MAX_VALUE, "test string", Timestamp.from(Instant.now())));
     DORM.update(conn, new TestBean(insert.getTestKey(), insert.getSomeLong(), "changed string", insert.getSomeDtm()));
     return DORM.select(conn, insert.getTestKey(), TestBean.class);
 }).execute(connection);

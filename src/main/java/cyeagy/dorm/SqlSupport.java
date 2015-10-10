@@ -27,7 +27,7 @@ public class SqlSupport {
      * @return entity or null
      * @throws SQLException
      */
-    public <T> T query(Connection connection, String sql, QueryBinding binding, ResultMapping<T> mapping) throws SQLException {
+    public <T> T query(Connection connection, String sql, QueryBinding binding, ResultMapping<T> mapping) throws SQLException, DormException {
         Objects.requireNonNull(connection, "connection is null");
         Objects.requireNonNull(sql, "sql is null");
         Objects.requireNonNull(mapping, "result mapping is null");
@@ -41,6 +41,11 @@ public class SqlSupport {
                     entity = mapping.map(rs, 0);
                 }
             }
+        } catch (Throwable e) {
+            if (e instanceof SQLException) {
+                throw (SQLException) e;
+            }
+            throw new DormException(e);
         }
         return entity;
     }
@@ -56,7 +61,7 @@ public class SqlSupport {
      * @return list of entity or empty list
      * @throws SQLException
      */
-    public <T> List<T> queryList(Connection connection, String sql, QueryBinding binding, ResultMapping<T> mapping) throws SQLException {
+    public <T> List<T> queryList(Connection connection, String sql, QueryBinding binding, ResultMapping<T> mapping) throws SQLException, DormException {
         Objects.requireNonNull(connection, "connection is null");
         Objects.requireNonNull(sql, "sql is null");
         Objects.requireNonNull(mapping, "result mapping is null");
@@ -71,6 +76,8 @@ public class SqlSupport {
                     entities.add(mapping.map(rs, i++));
                 }
             }
+        } catch (Exception e) {
+            throw new DormException(e);
         }
         return entities;
     }
@@ -88,7 +95,7 @@ public class SqlSupport {
      * @return map of entities by key or empty map
      * @throws SQLException
      */
-    public <K, T> Map<K, T> queryMapped(Connection connection, String sql, QueryBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) throws SQLException {
+    public <K, T> Map<K, T> queryMapped(Connection connection, String sql, QueryBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) throws SQLException, DormException {
         Objects.requireNonNull(connection, "connection is null");
         Objects.requireNonNull(sql, "sql is null");
         Objects.requireNonNull(resultMapping, "result mapping is null");
@@ -104,6 +111,8 @@ public class SqlSupport {
                     map.put(keyMapping.map(rs, i), resultMapping.map(rs, i++));
                 }
             }
+        } catch (Exception e) {
+            throw new DormException(e);
         }
         return map;
     }
@@ -117,7 +126,7 @@ public class SqlSupport {
      * @return number of rows updated
      * @throws SQLException
      */
-    public int update(Connection connection, String sql, QueryBinding binding) throws SQLException {
+    public int update(Connection connection, String sql, QueryBinding binding) throws SQLException, DormException {
         Objects.requireNonNull(connection, "connection is null");
         Objects.requireNonNull(sql, "sql is null");
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql)) {
@@ -125,6 +134,8 @@ public class SqlSupport {
                 binding.bind(ps);
             }
             return ps.executeUpdate();
+        } catch (Exception e) {
+            throw new DormException(e);
         }
     }
 
@@ -138,7 +149,7 @@ public class SqlSupport {
      * @return key or null
      * @throws SQLException
      */
-    public <K> K insert(Connection connection, String sql, QueryBinding binding) throws SQLException {
+    public <K> K insert(Connection connection, String sql, QueryBinding binding) throws SQLException, DormException {
         Objects.requireNonNull(connection, "connection is null");
         Objects.requireNonNull(sql, "sql is null");
         Objects.requireNonNull(binding, "query binding is null");
@@ -152,6 +163,8 @@ public class SqlSupport {
                     key = (K) rs.getObject(1);
                 }
             }
+        } catch (Exception e) {
+            throw new DormException(e);
         }
         return key;
     }
@@ -159,20 +172,21 @@ public class SqlSupport {
 
     @FunctionalInterface
     public interface QueryBinding {
-        void bind(BetterPreparedStatement ps) throws SQLException;
+        void bind(BetterPreparedStatement ps) throws Exception;
     }
 
     @FunctionalInterface
     public interface ResultMapping<T> {
-        T map(BetterResultSet rs, int idx) throws SQLException;
+        T map(BetterResultSet rs, int idx) throws Exception;
     }
 
     //can be used inline on the builders, makes for simpler lambdas as people rarely need the result index
     @FunctionalInterface
     public interface SimpleResultMapping<T> extends ResultMapping<T> {
-        T map(BetterResultSet rs) throws SQLException;
+        T map(BetterResultSet rs) throws Exception;
 
-        default T map(BetterResultSet rs, int idx) throws SQLException {
+        @Override
+        default T map(BetterResultSet rs, int idx) throws Exception {
             return map(rs);
         }
     }
@@ -184,39 +198,51 @@ public class SqlSupport {
     }
 
     public interface Builder {
-        int executeUpdate(Connection connection) throws SQLException;
+        int executeUpdate(Connection connection) throws SQLException, DormException;
+
         BoundBuilder queryBinding(QueryBinding queryBinding);
+
         <T> ResultBuilder<T> resultMapping(ResultMapping<T> resultMapping);
+
         <T> ResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping);
     }
 
     public interface BoundBuilder {
-        int executeUpdate(Connection connection) throws SQLException;
-        <K> K executeInsert(Connection connection) throws SQLException;
+        int executeUpdate(Connection connection) throws SQLException, DormException;
+
+        <K> K executeInsert(Connection connection) throws SQLException, DormException;
+
         <T> BoundResultBuilder<T> resultMapping(ResultMapping<T> resultMapping);
+
         <T> BoundResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping);
     }
 
     public interface ResultBuilder<T> {
-        T executeQuery(Connection connection) throws SQLException;
-        List<T> executeQueryList(Connection connection) throws SQLException;
+        T executeQuery(Connection connection) throws SQLException, DormException;
+
+        List<T> executeQueryList(Connection connection) throws SQLException, DormException;
+
         BoundResultBuilder<T> queryBinding(QueryBinding queryBinding);
+
         <K> KeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping);
     }
 
     public interface BoundResultBuilder<T> {
-        T executeQuery(Connection connection) throws SQLException;
-        List<T> executeQueryList(Connection connection) throws SQLException;
+        T executeQuery(Connection connection) throws SQLException, DormException;
+
+        List<T> executeQueryList(Connection connection) throws SQLException, DormException;
+
         <K> BoundKeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping);
     }
 
     public interface KeyedResultBuilder<K, T> {
-        Map<K, T> executeQueryMapped(Connection connection, ResultMapping<K> keyMapping) throws SQLException;
+        Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException;
+
         BoundKeyedResultBuilder<K, T> queryBinding(QueryBinding queryBinding);
     }
 
     public interface BoundKeyedResultBuilder<K, T> {
-        Map<K, T> executeQueryMapped(Connection connection, ResultMapping<K> keyMapping) throws SQLException;
+        Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException;
     }
 
     private static class BuilderImpl implements Builder {
@@ -228,7 +254,7 @@ public class SqlSupport {
         }
 
         @Override
-        public int executeUpdate(Connection connection) throws SQLException {
+        public int executeUpdate(Connection connection) throws SQLException, DormException {
             return SQL_SUPPORT.update(connection, sql, null);
         }
 
@@ -258,12 +284,12 @@ public class SqlSupport {
         }
 
         @Override
-        public int executeUpdate(Connection connection) throws SQLException {
+        public int executeUpdate(Connection connection) throws SQLException, DormException {
             return BuilderImpl.SQL_SUPPORT.update(connection, sql, queryBinding);
         }
 
         @Override
-        public <K> K executeInsert(Connection connection) throws SQLException {
+        public <K> K executeInsert(Connection connection) throws SQLException, DormException {
             return BuilderImpl.SQL_SUPPORT.insert(connection, sql, queryBinding);
         }
 
@@ -288,12 +314,12 @@ public class SqlSupport {
         }
 
         @Override
-        public T executeQuery(Connection connection) throws SQLException {
+        public T executeQuery(Connection connection) throws SQLException, DormException {
             return BuilderImpl.SQL_SUPPORT.query(connection, sql, null, resultMapping);
         }
 
         @Override
-        public List<T> executeQueryList(Connection connection) throws SQLException {
+        public List<T> executeQueryList(Connection connection) throws SQLException, DormException {
             return BuilderImpl.SQL_SUPPORT.queryList(connection, sql, null, resultMapping);
         }
 
@@ -320,12 +346,12 @@ public class SqlSupport {
         }
 
         @Override
-        public T executeQuery(Connection connection) throws SQLException {
+        public T executeQuery(Connection connection) throws SQLException, DormException {
             return BuilderImpl.SQL_SUPPORT.query(connection, sql, queryBinding, resultMapping);
         }
 
         @Override
-        public List<T> executeQueryList(Connection connection) throws SQLException {
+        public List<T> executeQueryList(Connection connection) throws SQLException, DormException {
             return BuilderImpl.SQL_SUPPORT.queryList(connection, sql, queryBinding, resultMapping);
         }
 
@@ -347,7 +373,7 @@ public class SqlSupport {
         }
 
         @Override
-        public Map<K, T> executeQueryMapped(Connection connection, ResultMapping<K> keyMapping) throws SQLException {
+        public Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException {
             return BuilderImpl.SQL_SUPPORT.queryMapped(connection, sql, null, resultMapping, keyMapping);
         }
 
@@ -371,7 +397,7 @@ public class SqlSupport {
         }
 
         @Override
-        public Map<K, T> executeQueryMapped(Connection connection, ResultMapping<K> keyMapping) throws SQLException {
+        public Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException {
             return BuilderImpl.SQL_SUPPORT.queryMapped(connection, sql, queryBinding, resultMapping, keyMapping);
         }
     }

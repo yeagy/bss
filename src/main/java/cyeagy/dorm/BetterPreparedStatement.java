@@ -108,7 +108,7 @@ public class BetterPreparedStatement implements PreparedStatement {
     public static BetterPreparedStatement create(Connection connection, String sql, boolean returnGeneratedKeys) throws SQLException {
         Objects.requireNonNull(sql);
         Objects.requireNonNull(connection);
-        NamedParameters named = processNamedParameters(sql);
+        final NamedParameters named = processNamedParameters(sql);
         if (named != null) {
             sql = named.getProcessedSql();
         }
@@ -126,8 +126,8 @@ public class BetterPreparedStatement implements PreparedStatement {
      */
     private static NamedParameters processNamedParameters(String sql) {
         if (!sql.contains("?") && sql.contains(":")) {
-            StringBuilder processedSql = new StringBuilder(sql.length());
-            Map<String, List<Integer>> indices = new HashMap<>();
+            final StringBuilder processedSql = new StringBuilder(sql.length());
+            final Map<String, List<Integer>> indices = new HashMap<>();
             int idx = 1;
             boolean inSingleQuote = false;
             boolean inDoubleQuote = false;
@@ -151,7 +151,7 @@ public class BetterPreparedStatement implements PreparedStatement {
                         while (j < sql.length() && Character.isJavaIdentifierPart(sql.charAt(j))) {
                             j++;
                         }
-                        String name = sql.substring(i + 1, j);
+                        final String name = sql.substring(i + 1, j);
                         c = '?';
                         i += name.length();
                         multimapPut(indices, name, idx++);
@@ -216,7 +216,7 @@ public class BetterPreparedStatement implements PreparedStatement {
     //arrays convenience
 
     public Array createArray(Object[] elements) throws SQLException {
-        Class<?> clazz = elements.getClass().getComponentType();
+        final Class<?> clazz = elements.getClass().getComponentType();
         final String sqlType = TypeMappers.getSqlType(clazz);
         if (sqlType == null) {
             throw new SQLException("no sql type found for java class " + clazz.getName());

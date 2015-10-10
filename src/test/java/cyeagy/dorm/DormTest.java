@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -25,7 +26,7 @@ import static org.junit.Assert.*;
 public class DormTest {
     private static Dorm DORM = Dorm.fromDefaults();
     private static Server server;
-    private static Connection connectionH2;
+    private static Connection connection;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -33,16 +34,16 @@ public class DormTest {
         Class.forName("org.h2.Driver");
         JdbcDataSource dataSource = new JdbcDataSource();
         dataSource.setUrl("jdbc:h2:mem:");
-        connectionH2 = dataSource.getConnection();
+        connection = dataSource.getConnection();
         String create = new Scanner(DormTest.class.getResourceAsStream("/sql/test_create.sql"), "UTF-8").useDelimiter("\\A").next();
-        Statement statement = connectionH2.createStatement();
+        Statement statement = connection.createStatement();
         statement.execute(create);
         statement.close();
     }
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        connectionH2.close();
+        connection.close();
         server.shutdown();
     }
 
@@ -52,7 +53,7 @@ public class DormTest {
     }
 
     private void truncateAndInsert() throws SQLException {
-        Statement statement = connectionH2.createStatement();
+        Statement statement = connection.createStatement();
         String insert = new Scanner(DormTest.class.getResourceAsStream("/sql/test_insert.sql"), "UTF-8").useDelimiter("\\A").next();
         statement.execute(insert);
         statement.close();
@@ -60,24 +61,22 @@ public class DormTest {
 
     @Test
     public void testFull() throws Exception {
-        SqlTransaction.with(connection -> {
-            TestBean bean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()));
-            TestBean result = DORM.insert(connection, bean);
-            assertNotNull(result.getTestKey());
+        TestBean bean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()));
+        TestBean result = DORM.insert(connection, bean);
+        assertNotNull(result.getTestKey());
 
-            result = DORM.select(connection, result.getTestKey(), TestBean.class);
-            assertThat(result.getSomeString(), equalTo(bean.getSomeString()));
+        result = DORM.select(connection, result.getTestKey(), TestBean.class);
+        assertThat(result.getSomeString(), equalTo(bean.getSomeString()));
 
-            DORM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), bean.getSomeInt(), "changed string", bean.getSomeDtm()));
+        DORM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), bean.getSomeInt(), "changed string", bean.getSomeDtm()));
 
-            result = DORM.select(connection, result.getTestKey(), TestBean.class);
-            assertThat(bean.getSomeString(), not(equalTo(result.getSomeString())));
+        result = DORM.select(connection, result.getTestKey(), TestBean.class);
+        assertThat(bean.getSomeString(), not(equalTo(result.getSomeString())));
 
-            DORM.delete(connection, result.getTestKey(), TestBean.class);
+        DORM.delete(connection, result.getTestKey(), TestBean.class);
 
-            result = DORM.select(connection, result.getTestKey(), TestBean.class);
-            assertNull(result);
-        }).execute(connectionH2);
+        result = DORM.select(connection, result.getTestKey(), TestBean.class);
+        assertNull(result);
     }
 
     @Test
@@ -85,7 +84,7 @@ public class DormTest {
         Timestamp now = Timestamp.from(Instant.now());
         {
             TestBean testBean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now);
-            TestBean result = DORM.insert(connectionH2, testBean);
+            TestBean result = DORM.insert(connection, testBean);
             assertNotNull(result);
             assertThat(result, is(not(testBean)));
             assertNotNull(result.getTestKey());
@@ -97,7 +96,7 @@ public class DormTest {
         }
         {
             final AnnotatedTestBean testbean = new AnnotatedTestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now);
-            final AnnotatedTestBean result = DORM.insert(connectionH2, testbean);
+            final AnnotatedTestBean result = DORM.insert(connection, testbean);
             assertNotNull(result);
             assertThat(result, is(not(testbean)));
             assertNotNull(result.getLegacyKey());
@@ -116,7 +115,7 @@ public class DormTest {
             final long key = 4;
             TestBean testBean = new TestBean(4l, Long.MAX_VALUE, Integer.MAX_VALUE, "FOURTH", now);
 
-            final TestBean preSelect = DORM.select(connectionH2, key, TestBean.class);
+            final TestBean preSelect = DORM.select(connection, key, TestBean.class);
             assertNotNull(preSelect);
             assertThat(preSelect.getTestKey(), equalTo(testBean.getTestKey()));
             assertThat(preSelect.getSomeLong(), not(equalTo(testBean.getSomeLong())));
@@ -124,9 +123,9 @@ public class DormTest {
             assertThat(preSelect.getSomeString(), not(testBean.getSomeString()));
             assertThat(preSelect.getSomeDtm(), not(testBean.getSomeDtm()));
 
-            DORM.update(connectionH2, testBean);
+            DORM.update(connection, testBean);
 
-            final TestBean select = DORM.select(connectionH2, key, TestBean.class);
+            final TestBean select = DORM.select(connection, key, TestBean.class);
             assertNotNull(select);
             assertThat(select.getTestKey(), equalTo(testBean.getTestKey()));
             assertThat(select.getSomeLong(), equalTo(testBean.getSomeLong()));
@@ -138,7 +137,7 @@ public class DormTest {
             final long key = 5;
             AnnotatedTestBean testBean = new AnnotatedTestBean(key, Long.MAX_VALUE, Integer.MAX_VALUE, "FOURTH", now);
 
-            final AnnotatedTestBean preSelect = DORM.select(connectionH2, key, AnnotatedTestBean.class);
+            final AnnotatedTestBean preSelect = DORM.select(connection, key, AnnotatedTestBean.class);
             assertNotNull(preSelect);
             assertThat(preSelect.getLegacyKey(), equalTo(testBean.getLegacyKey()));
             assertThat(preSelect.getLegacyLong(), not(equalTo(testBean.getLegacyLong())));
@@ -146,9 +145,9 @@ public class DormTest {
             assertThat(preSelect.getLegacyString(), not(testBean.getLegacyString()));
             assertThat(preSelect.getLegacyTimestamp(), not(testBean.getLegacyTimestamp()));
 
-            DORM.update(connectionH2, testBean);
+            DORM.update(connection, testBean);
 
-            final AnnotatedTestBean select = DORM.select(connectionH2, key, AnnotatedTestBean.class);
+            final AnnotatedTestBean select = DORM.select(connection, key, AnnotatedTestBean.class);
             assertNotNull(select);
             assertThat(select.getLegacyKey(), equalTo(testBean.getLegacyKey()));
             assertThat(select.getLegacyLong(), equalTo(testBean.getLegacyLong()));
@@ -162,12 +161,12 @@ public class DormTest {
     public void testSelect() throws Exception {
         final long key = 3;
         {
-            final TestBean result = SqlTransaction.returning(connection -> DORM.select(connection, key, TestBean.class)).execute(connectionH2);
+            final TestBean result = DORM.select(connection, key, TestBean.class);
             assertNotNull(result);
             assertThat(result.getTestKey(), equalTo(key));
         }
         {
-            final AnnotatedTestBean result = SqlTransaction.returning(connection -> DORM.select(connection, key, AnnotatedTestBean.class)).execute(connectionH2);
+            final AnnotatedTestBean result = DORM.select(connection, key, AnnotatedTestBean.class);
             assertNotNull(result);
             assertThat(result.getLegacyKey(), equalTo(key));
         }
@@ -177,7 +176,7 @@ public class DormTest {
     @Test
     public void testBulkSelect() throws Exception {
         Set<Long> keys = new HashSet<>(Arrays.asList(3l, 4l, 5l));
-        final Set<TestBean> results = DORM.select(connectionH2, keys, TestBean.class);
+        final List<TestBean> results = DORM.select(connection, keys, TestBean.class);
         assertNotNull(results);
         assertThat(results.size(), equalTo(keys.size()));
         for (TestBean result : results) {
@@ -189,24 +188,24 @@ public class DormTest {
     public void testDelete() throws Exception {
         {
             final long key = 1;
-            final TestBean preSelect = DORM.select(connectionH2, key, TestBean.class);
+            final TestBean preSelect = DORM.select(connection, key, TestBean.class);
             assertNotNull(preSelect);
             assertThat(preSelect.getTestKey(), equalTo(key));
 
-            DORM.delete(connectionH2, key, TestBean.class);
+            DORM.delete(connection, key, TestBean.class);
 
-            final TestBean select = DORM.select(connectionH2, key, TestBean.class);
+            final TestBean select = DORM.select(connection, key, TestBean.class);
             assertNull(select);
         }
         {
             final long key = 2;
-            final AnnotatedTestBean preSelect = DORM.select(connectionH2, key, AnnotatedTestBean.class);
+            final AnnotatedTestBean preSelect = DORM.select(connection, key, AnnotatedTestBean.class);
             assertNotNull(preSelect);
             assertThat(preSelect.getLegacyKey(), equalTo(key));
 
-            DORM.delete(connectionH2, key, AnnotatedTestBean.class);
+            DORM.delete(connection, key, AnnotatedTestBean.class);
 
-            final AnnotatedTestBean select = DORM.select(connectionH2, key, AnnotatedTestBean.class);
+            final AnnotatedTestBean select = DORM.select(connection, key, AnnotatedTestBean.class);
             assertNull(select);
         }
     }
