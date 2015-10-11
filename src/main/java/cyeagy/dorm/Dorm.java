@@ -5,9 +5,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 
 import static cyeagy.dorm.ReflectUtil.*;
 
@@ -36,6 +35,9 @@ public class Dorm {
      * @throws DormException
      */
     public <T> T select(Connection connection, Object key, Class<T> clazz) throws SQLException, DormException {
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
         final String select = GENERATOR.generateSelectSqlTemplate(tableData);
         return SUPPORT.builder(select).queryBinding(ps -> setParameter(ps, key, 1))
@@ -55,10 +57,12 @@ public class Dorm {
      * @throws DormException
      */
     public <T> List<T> select(Connection connection, Collection<?> keys, Class<T> clazz) throws SQLException, DormException {
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(keys);
+        Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
         final String select = GENERATOR.generateBulkSelectSqlTemplate(tableData);
-        final Set<?> keySet = keys instanceof Set ? (Set<?>) keys : new HashSet<>(keys);
-        return SUPPORT.builder(select).queryBinding(ps -> ps.setArray(1, keySet))
+        return SUPPORT.builder(select).queryBinding(ps -> ps.setArray(1, keys))
                 .resultMapping(rs -> copyEntity(rs, tableData, clazz)).executeQueryList(connection);
     }
 
@@ -79,10 +83,12 @@ public class Dorm {
      * @throws DormException
      */
     public <T> T insert(Connection connection, T entity) throws SQLException, DormException {
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(entity);
         T result = null;
         final TableData tableData = TableData.from(entity.getClass());
         try {
-            final Object pk = tableData.getPrimaryKey().getType().isPrimitive() ? null : readField(tableData.getPrimaryKey(), entity);
+            final Object pk = getPrimaryKeyValue(entity, tableData);
             final String insert = GENERATOR.generateInsertSqlTemplate(tableData, pk != null);
             final Object generatedKey = SUPPORT.insert(connection, insert, ps -> {
                 int idx = 0;
@@ -93,7 +99,7 @@ public class Dorm {
                     setParameter(ps, field, entity, ++idx);
                 }
             });
-            if (generatedKey != null) {
+            if (pk == null && generatedKey != null) {
                 //noinspection unchecked
                 result = constructNewInstance((Class<T>) entity.getClass());
                 writeField(tableData.getPrimaryKey(), result, generatedKey);
@@ -117,7 +123,10 @@ public class Dorm {
      * @throws DormException
      */
     public int update(Connection connection, Object entity) throws SQLException, DormException {
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(entity);
         final TableData tableData = TableData.from(entity.getClass());
+        Objects.requireNonNull(getPrimaryKeyValue(entity, tableData), "primary key cannot be null");
         final String update = GENERATOR.generateUpdateSqlTemplate(tableData);
         return SUPPORT.update(connection, update, ps -> {
             int idx = 0;
@@ -139,9 +148,20 @@ public class Dorm {
      * @throws DormException
      */
     public int delete(Connection connection, Object key, Class<?> clazz) throws SQLException, DormException {
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
         final String delete = GENERATOR.generateDeleteSqlTemplate(tableData);
         return SUPPORT.update(connection, delete, ps -> setParameter(ps, key, 1));
+    }
+
+    private Object getPrimaryKeyValue(Object entity, TableData tableData) throws DormException {
+        try {
+            return readField(tableData.getPrimaryKey(), entity);
+        } catch (IllegalAccessException e) {
+            throw new DormException(e);
+        }
     }
 
     private <T> T copyEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException {

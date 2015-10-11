@@ -10,8 +10,7 @@ My opinion is also that writing JDBC is time consuming, and the most mundane can
 
 ## Usage
 ##### Convention -> Table is in lower snake_case, POJO in CamelCase. Primary Key is first/top field. No parameter constructor (any scope). Primitive fields are non-null columns.
-Dorm is designed to be as minimal as possible.
-As such, it can work on POJO's without need for annotations if a simple convention is followed.
+Dorm is designed to be as quite minimal, it can work on POJO's without need for annotations if a simple convention is followed.
 Annotations can be used to stray from convention.
 
 Example table (postgres syntax):
@@ -60,7 +59,7 @@ assertThat(result.getSomeString(), equalTo(bean.getSomeString()));
 DORM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), "changed string", bean.getSomeDtm()));
 
 result = DORM.select(connection, result.getTestKey(), TestBean.class);
-assertThat(bean.getSomeString(), not(equalTo(result.getSomeString())));
+assertThat(result.getSomeString(), not(equalTo(bean.getSomeString())));
 
 DORM.delete(connection, result.getTestKey(), TestBean.class);
 
@@ -78,7 +77,7 @@ public class AnnotatedTestBean {
     @Column(name="some_dtm") private Timestamp legacyTimestamp;
     @Id @Column(name="test_key") private Long legacyKey;
 
-    private AnnotatedTestBean() {}
+    private AnnotatedTestBean() { }
     public AnnotatedTestBean(Long legacyKey, long legacyLong, String legacyString, Timestamp legacyTimestamp) {
         this.legacyKey = legacyKey;
         this.legacyLong = legacyLong;
@@ -93,7 +92,7 @@ public class AnnotatedTestBean {
 ```
 #### Enchanced JDBC Support
 Dorm provides utilities to ease the JDBC you still have to do manually.
-BetterPreparedStatement and BetterResultSet classes feature null-safe primitive getting/setting, array type conversion, java 8 time, and :named parameters.
+BetterPreparedStatement and BetterResultSet classes feature :named parameters, null-safe boxed primitive getting/setting, array type conversion, and java 8 time.
 Class SqlSupport features a simple lambda based API as well as a cascading builder object for one line JDBC calls.
 
 Example of method and builder styles:

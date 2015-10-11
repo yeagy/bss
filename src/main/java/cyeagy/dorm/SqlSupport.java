@@ -28,9 +28,9 @@ public class SqlSupport {
      * @throws SQLException
      */
     public <T> T query(Connection connection, String sql, QueryBinding binding, ResultMapping<T> mapping) throws SQLException, DormException {
-        Objects.requireNonNull(connection, "connection is null");
-        Objects.requireNonNull(sql, "sql is null");
-        Objects.requireNonNull(mapping, "result mapping is null");
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(sql);
+        Objects.requireNonNull(mapping);
         T entity = null;
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql)) {
             if (binding != null) {
@@ -62,9 +62,9 @@ public class SqlSupport {
      * @throws SQLException
      */
     public <T> List<T> queryList(Connection connection, String sql, QueryBinding binding, ResultMapping<T> mapping) throws SQLException, DormException {
-        Objects.requireNonNull(connection, "connection is null");
-        Objects.requireNonNull(sql, "sql is null");
-        Objects.requireNonNull(mapping, "result mapping is null");
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(sql);
+        Objects.requireNonNull(mapping);
         final List<T> entities = new ArrayList<>();
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql)) {
             if (binding != null) {
@@ -96,10 +96,10 @@ public class SqlSupport {
      * @throws SQLException
      */
     public <K, T> Map<K, T> queryMapped(Connection connection, String sql, QueryBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) throws SQLException, DormException {
-        Objects.requireNonNull(connection, "connection is null");
-        Objects.requireNonNull(sql, "sql is null");
-        Objects.requireNonNull(resultMapping, "result mapping is null");
-        Objects.requireNonNull(keyMapping, "key mapping is null");
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(sql);
+        Objects.requireNonNull(resultMapping);
+        Objects.requireNonNull(keyMapping);
         final Map<K, T> map = new HashMap<>();
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql)) {
             if (binding != null) {
@@ -127,8 +127,8 @@ public class SqlSupport {
      * @throws SQLException
      */
     public int update(Connection connection, String sql, QueryBinding binding) throws SQLException, DormException {
-        Objects.requireNonNull(connection, "connection is null");
-        Objects.requireNonNull(sql, "sql is null");
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(sql);
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql)) {
             if (binding != null) {
                 binding.bind(ps);
@@ -150,9 +150,9 @@ public class SqlSupport {
      * @throws SQLException
      */
     public <K> K insert(Connection connection, String sql, QueryBinding binding) throws SQLException, DormException {
-        Objects.requireNonNull(connection, "connection is null");
-        Objects.requireNonNull(sql, "sql is null");
-        Objects.requireNonNull(binding, "query binding is null");
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(sql);
+        Objects.requireNonNull(binding);
         K key = null;
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql, true)) {
             binding.bind(ps);
@@ -225,6 +225,8 @@ public class SqlSupport {
         BoundResultBuilder<T> queryBinding(QueryBinding queryBinding);
 
         <K> KeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping);
+
+        <K> KeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping);
     }
 
     public interface BoundResultBuilder<T> {
@@ -233,6 +235,8 @@ public class SqlSupport {
         List<T> executeQueryList(Connection connection) throws SQLException, DormException;
 
         <K> BoundKeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping);
+
+        <K> BoundKeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping);
     }
 
     public interface KeyedResultBuilder<K, T> {
@@ -332,6 +336,11 @@ public class SqlSupport {
         public <K> KeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping) {
             return new KeyedResultBuilderImpl<>(sql, resultMapping, keyMapping);
         }
+
+        @Override
+        public <K> KeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping) {
+            return new KeyedResultBuilderImpl<>(sql, resultMapping, keyMapping);
+        }
     }
 
     private static class BoundResultBuilderImpl<T> implements BoundResultBuilder<T> {
@@ -357,6 +366,11 @@ public class SqlSupport {
 
         @Override
         public <K> BoundKeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping) {
+            return new BoundKeyedResultBuilderImpl<>(sql, queryBinding, resultMapping, keyMapping);
+        }
+
+        @Override
+        public <K> BoundKeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping) {
             return new BoundKeyedResultBuilderImpl<>(sql, queryBinding, resultMapping, keyMapping);
         }
     }
