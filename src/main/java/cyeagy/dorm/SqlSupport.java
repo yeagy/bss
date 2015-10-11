@@ -41,10 +41,9 @@ public class SqlSupport {
                     entity = mapping.map(rs, 0);
                 }
             }
+        } catch (SQLException e) {
+            throw e;
         } catch (Throwable e) {
-            if (e instanceof SQLException) {
-                throw (SQLException) e;
-            }
             throw new DormException(e);
         }
         return entity;
@@ -76,6 +75,8 @@ public class SqlSupport {
                     entities.add(mapping.map(rs, i++));
                 }
             }
+        } catch (SQLException e) {
+            throw e;
         } catch (Exception e) {
             throw new DormException(e);
         }
@@ -111,6 +112,8 @@ public class SqlSupport {
                     map.put(keyMapping.map(rs, i), resultMapping.map(rs, i++));
                 }
             }
+        } catch (SQLException e) {
+            throw e;
         } catch (Exception e) {
             throw new DormException(e);
         }
@@ -134,6 +137,8 @@ public class SqlSupport {
                 binding.bind(ps);
             }
             return ps.executeUpdate();
+        } catch (SQLException e) {
+            throw e;
         } catch (Exception e) {
             throw new DormException(e);
         }
@@ -163,12 +168,13 @@ public class SqlSupport {
                     key = (K) rs.getObject(1);
                 }
             }
+        } catch (SQLException e) {
+            throw e;
         } catch (Exception e) {
             throw new DormException(e);
         }
         return key;
     }
-
 
     @FunctionalInterface
     public interface QueryBinding {
@@ -253,7 +259,7 @@ public class SqlSupport {
         private static final SqlSupport SQL_SUPPORT = new SqlSupport();
         private final String sql;
 
-        public BuilderImpl(String sql) {
+        private BuilderImpl(String sql) {
             this.sql = sql;
         }
 
@@ -282,7 +288,7 @@ public class SqlSupport {
         private final String sql;
         private final QueryBinding queryBinding;
 
-        public BoundBuilderImpl(String sql, QueryBinding queryBinding) {
+        private BoundBuilderImpl(String sql, QueryBinding queryBinding) {
             this.sql = sql;
             this.queryBinding = queryBinding;
         }
@@ -312,7 +318,7 @@ public class SqlSupport {
         private final String sql;
         private final ResultMapping<T> resultMapping;
 
-        public ResultBuilderImpl(String sql, ResultMapping<T> resultMapping) {
+        private ResultBuilderImpl(String sql, ResultMapping<T> resultMapping) {
             this.sql = sql;
             this.resultMapping = resultMapping;
         }
@@ -348,7 +354,7 @@ public class SqlSupport {
         private final QueryBinding queryBinding;
         private final ResultMapping<T> resultMapping;
 
-        public BoundResultBuilderImpl(String sql, QueryBinding queryBinding, ResultMapping<T> resultMapping) {
+        private BoundResultBuilderImpl(String sql, QueryBinding queryBinding, ResultMapping<T> resultMapping) {
             this.sql = sql;
             this.queryBinding = queryBinding;
             this.resultMapping = resultMapping;
@@ -380,7 +386,7 @@ public class SqlSupport {
         private final ResultMapping<T> resultMapping;
         private final ResultMapping<K> keyMapping;
 
-        public KeyedResultBuilderImpl(String sql, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) {
+        private KeyedResultBuilderImpl(String sql, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) {
             this.sql = sql;
             this.resultMapping = resultMapping;
             this.keyMapping = keyMapping;
@@ -403,7 +409,7 @@ public class SqlSupport {
         private final ResultMapping<T> resultMapping;
         private final ResultMapping<K> keyMapping;
 
-        public BoundKeyedResultBuilderImpl(String sql, QueryBinding queryBinding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) {
+        private BoundKeyedResultBuilderImpl(String sql, QueryBinding queryBinding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) {
             this.sql = sql;
             this.queryBinding = queryBinding;
             this.resultMapping = resultMapping;
