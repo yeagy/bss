@@ -3,6 +3,7 @@ package cyeagy.dorm;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ public class SqlSupport {
         } catch (Exception e) {
             throw new DormException(e);
         }
-        return entities;
+        return Collections.unmodifiableList(entities);
     }
 
     /**
@@ -117,7 +118,7 @@ public class SqlSupport {
         } catch (Exception e) {
             throw new DormException(e);
         }
-        return map;
+        return Collections.unmodifiableMap(map);
     }
 
     /**
@@ -200,225 +201,153 @@ public class SqlSupport {
     //all cascading builders below
 
     public Builder builder(String sql) {
-        return new BuilderImpl(sql);
+        return new Builder(sql);
     }
 
-    public interface Builder {
-        int executeUpdate(Connection connection) throws SQLException, DormException;
-
-        BoundBuilder queryBinding(QueryBinding queryBinding);
-
-        <T> ResultBuilder<T> resultMapping(ResultMapping<T> resultMapping);
-
-        <T> ResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping);
-    }
-
-    public interface BoundBuilder {
-        int executeUpdate(Connection connection) throws SQLException, DormException;
-
-        <K> K executeInsert(Connection connection) throws SQLException, DormException;
-
-        <T> BoundResultBuilder<T> resultMapping(ResultMapping<T> resultMapping);
-
-        <T> BoundResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping);
-    }
-
-    public interface ResultBuilder<T> {
-        T executeQuery(Connection connection) throws SQLException, DormException;
-
-        List<T> executeQueryList(Connection connection) throws SQLException, DormException;
-
-        BoundResultBuilder<T> queryBinding(QueryBinding queryBinding);
-
-        <K> KeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping);
-
-        <K> KeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping);
-    }
-
-    public interface BoundResultBuilder<T> {
-        T executeQuery(Connection connection) throws SQLException, DormException;
-
-        List<T> executeQueryList(Connection connection) throws SQLException, DormException;
-
-        <K> BoundKeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping);
-
-        <K> BoundKeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping);
-    }
-
-    public interface KeyedResultBuilder<K, T> {
-        Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException;
-
-        BoundKeyedResultBuilder<K, T> queryBinding(QueryBinding queryBinding);
-    }
-
-    public interface BoundKeyedResultBuilder<K, T> {
-        Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException;
-    }
-
-    private static class BuilderImpl implements Builder {
+    public static class Builder {
         private static final SqlSupport SQL_SUPPORT = new SqlSupport();
         private final String sql;
 
-        private BuilderImpl(String sql) {
+        private Builder(String sql) {
             this.sql = sql;
         }
 
-        @Override
         public int executeUpdate(Connection connection) throws SQLException, DormException {
             return SQL_SUPPORT.update(connection, sql, null);
         }
 
-        @Override
         public BoundBuilder queryBinding(QueryBinding queryBinding) {
-            return new BoundBuilderImpl(sql, queryBinding);
+            return new BoundBuilder(sql, queryBinding);
         }
 
-        @Override
         public <T> ResultBuilder<T> resultMapping(ResultMapping<T> resultMapping) {
-            return new ResultBuilderImpl<>(sql, resultMapping);
+            return new ResultBuilder<>(sql, resultMapping);
         }
 
-        @Override
         public <T> ResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping) {
-            return new ResultBuilderImpl<>(sql, resultMapping);
+            return new ResultBuilder<>(sql, resultMapping);
         }
     }
 
-    private static class BoundBuilderImpl implements BoundBuilder {
+    public static class BoundBuilder {
         private final String sql;
         private final QueryBinding queryBinding;
 
-        private BoundBuilderImpl(String sql, QueryBinding queryBinding) {
+        private BoundBuilder(String sql, QueryBinding queryBinding) {
             this.sql = sql;
             this.queryBinding = queryBinding;
         }
 
-        @Override
         public int executeUpdate(Connection connection) throws SQLException, DormException {
-            return BuilderImpl.SQL_SUPPORT.update(connection, sql, queryBinding);
+            return Builder.SQL_SUPPORT.update(connection, sql, queryBinding);
         }
 
-        @Override
         public <K> K executeInsert(Connection connection) throws SQLException, DormException {
-            return BuilderImpl.SQL_SUPPORT.insert(connection, sql, queryBinding);
+            return Builder.SQL_SUPPORT.insert(connection, sql, queryBinding);
         }
 
-        @Override
         public <T> BoundResultBuilder<T> resultMapping(ResultMapping<T> resultMapping) {
-            return new BoundResultBuilderImpl<>(sql, queryBinding, resultMapping);
+            return new BoundResultBuilder<>(sql, queryBinding, resultMapping);
         }
 
-        @Override
         public <T> BoundResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping) {
-            return new BoundResultBuilderImpl<>(sql, queryBinding, resultMapping);
+            return new BoundResultBuilder<>(sql, queryBinding, resultMapping);
         }
     }
 
-    private static class ResultBuilderImpl<T> implements ResultBuilder<T> {
+    public static class ResultBuilder<T> {
         private final String sql;
         private final ResultMapping<T> resultMapping;
 
-        private ResultBuilderImpl(String sql, ResultMapping<T> resultMapping) {
+        private ResultBuilder(String sql, ResultMapping<T> resultMapping) {
             this.sql = sql;
             this.resultMapping = resultMapping;
         }
 
-        @Override
         public T executeQuery(Connection connection) throws SQLException, DormException {
-            return BuilderImpl.SQL_SUPPORT.query(connection, sql, null, resultMapping);
+            return Builder.SQL_SUPPORT.query(connection, sql, null, resultMapping);
         }
 
-        @Override
         public List<T> executeQueryList(Connection connection) throws SQLException, DormException {
-            return BuilderImpl.SQL_SUPPORT.queryList(connection, sql, null, resultMapping);
+            return Builder.SQL_SUPPORT.queryList(connection, sql, null, resultMapping);
         }
 
-        @Override
         public BoundResultBuilder<T> queryBinding(QueryBinding queryBinding) {
-            return new BoundResultBuilderImpl<>(sql, queryBinding, resultMapping);
+            return new BoundResultBuilder<>(sql, queryBinding, resultMapping);
         }
 
-        @Override
         public <K> KeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping) {
-            return new KeyedResultBuilderImpl<>(sql, resultMapping, keyMapping);
+            return new KeyedResultBuilder<>(sql, resultMapping, keyMapping);
         }
 
-        @Override
         public <K> KeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping) {
-            return new KeyedResultBuilderImpl<>(sql, resultMapping, keyMapping);
+            return new KeyedResultBuilder<>(sql, resultMapping, keyMapping);
         }
     }
 
-    private static class BoundResultBuilderImpl<T> implements BoundResultBuilder<T> {
+    public static class BoundResultBuilder<T>{
         private final String sql;
         private final QueryBinding queryBinding;
         private final ResultMapping<T> resultMapping;
 
-        private BoundResultBuilderImpl(String sql, QueryBinding queryBinding, ResultMapping<T> resultMapping) {
+        private BoundResultBuilder(String sql, QueryBinding queryBinding, ResultMapping<T> resultMapping) {
             this.sql = sql;
             this.queryBinding = queryBinding;
             this.resultMapping = resultMapping;
         }
 
-        @Override
         public T executeQuery(Connection connection) throws SQLException, DormException {
-            return BuilderImpl.SQL_SUPPORT.query(connection, sql, queryBinding, resultMapping);
+            return Builder.SQL_SUPPORT.query(connection, sql, queryBinding, resultMapping);
         }
 
-        @Override
         public List<T> executeQueryList(Connection connection) throws SQLException, DormException {
-            return BuilderImpl.SQL_SUPPORT.queryList(connection, sql, queryBinding, resultMapping);
+            return Builder.SQL_SUPPORT.queryList(connection, sql, queryBinding, resultMapping);
         }
 
-        @Override
         public <K> BoundKeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping) {
-            return new BoundKeyedResultBuilderImpl<>(sql, queryBinding, resultMapping, keyMapping);
+            return new BoundKeyedResultBuilder<>(sql, queryBinding, resultMapping, keyMapping);
         }
 
-        @Override
         public <K> BoundKeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping) {
-            return new BoundKeyedResultBuilderImpl<>(sql, queryBinding, resultMapping, keyMapping);
+            return new BoundKeyedResultBuilder<>(sql, queryBinding, resultMapping, keyMapping);
         }
     }
 
-    private static class KeyedResultBuilderImpl<K, T> implements KeyedResultBuilder<K, T> {
+    public static class KeyedResultBuilder<K, T>{
         private final String sql;
         private final ResultMapping<T> resultMapping;
         private final ResultMapping<K> keyMapping;
 
-        private KeyedResultBuilderImpl(String sql, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) {
+        private KeyedResultBuilder(String sql, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) {
             this.sql = sql;
             this.resultMapping = resultMapping;
             this.keyMapping = keyMapping;
         }
 
-        @Override
         public Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException {
-            return BuilderImpl.SQL_SUPPORT.queryMapped(connection, sql, null, resultMapping, keyMapping);
+            return Builder.SQL_SUPPORT.queryMapped(connection, sql, null, resultMapping, keyMapping);
         }
 
-        @Override
         public BoundKeyedResultBuilder<K, T> queryBinding(QueryBinding queryBinding) {
-            return new BoundKeyedResultBuilderImpl<>(sql, queryBinding, resultMapping, keyMapping);
+            return new BoundKeyedResultBuilder<>(sql, queryBinding, resultMapping, keyMapping);
         }
     }
 
-    private static class BoundKeyedResultBuilderImpl<K, T> implements BoundKeyedResultBuilder<K, T> {
+    public static class BoundKeyedResultBuilder<K, T>{
         private final String sql;
         private final QueryBinding queryBinding;
         private final ResultMapping<T> resultMapping;
         private final ResultMapping<K> keyMapping;
 
-        private BoundKeyedResultBuilderImpl(String sql, QueryBinding queryBinding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) {
+        private BoundKeyedResultBuilder(String sql, QueryBinding queryBinding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) {
             this.sql = sql;
             this.queryBinding = queryBinding;
             this.resultMapping = resultMapping;
             this.keyMapping = keyMapping;
         }
 
-        @Override
         public Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException {
-            return BuilderImpl.SQL_SUPPORT.queryMapped(connection, sql, queryBinding, resultMapping, keyMapping);
+            return Builder.SQL_SUPPORT.queryMapped(connection, sql, queryBinding, resultMapping, keyMapping);
         }
     }
 }

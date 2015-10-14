@@ -6,6 +6,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 class ReflectUtil {
+    private ReflectUtil() { }
+
     static Object readField(Field field, Object bean) throws IllegalAccessException {
         return field.get(bean);
     }

@@ -20,8 +20,7 @@ public class SqlTransaction {
         }
     }
 
-    private SqlTransaction() {
-    }
+    private SqlTransaction() { }
 
     public static <T> ReturningTransaction<T> returning(TransactionConsumer<T> consumer) {
         return new ReturningTransaction<>(consumer, null);

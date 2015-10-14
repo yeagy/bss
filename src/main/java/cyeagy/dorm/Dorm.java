@@ -41,7 +41,7 @@ public class Dorm {
         final TableData tableData = TableData.from(clazz);
         final String select = GENERATOR.generateSelectSqlTemplate(tableData);
         return SUPPORT.builder(select).queryBinding(ps -> setParameter(ps, key, 1))
-                .resultMapping(rs -> copyEntity(rs, tableData, clazz)).executeQuery(connection);
+                .resultMapping(rs -> createEntity(rs, tableData, clazz)).executeQuery(connection);
     }
 
     /**
@@ -63,7 +63,7 @@ public class Dorm {
         final TableData tableData = TableData.from(clazz);
         final String select = GENERATOR.generateBulkSelectSqlTemplate(tableData);
         return SUPPORT.builder(select).queryBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> copyEntity(rs, tableData, clazz)).executeQueryList(connection);
+                .resultMapping(rs -> createEntity(rs, tableData, clazz)).executeQueryList(connection);
     }
 
     /**
@@ -87,9 +87,9 @@ public class Dorm {
         Objects.requireNonNull(entity);
         T result = null;
         final TableData tableData = TableData.from(entity.getClass());
+        final Object pk = getPrimaryKeyValue(entity, tableData);
+        final String insert = GENERATOR.generateInsertSqlTemplate(tableData, pk != null);
         try {
-            final Object pk = getPrimaryKeyValue(entity, tableData);
-            final String insert = GENERATOR.generateInsertSqlTemplate(tableData, pk != null);
             final Object generatedKey = SUPPORT.insert(connection, insert, ps -> {
                 int idx = 0;
                 if (pk != null) {
@@ -164,7 +164,7 @@ public class Dorm {
         }
     }
 
-    private <T> T copyEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException {
+    private <T> T createEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException {
         final T result = constructNewInstance(clazz);
         setField(rs, tableData.getPrimaryKey(), result, null);
         for (Field field : tableData.getColumns()) {

@@ -20,6 +20,7 @@ import static cyeagy.dorm.ReflectUtil.*;
  * This class is why I love java 8! No more if/else forests!
  */
 class TypeMappers {
+    private TypeMappers() { }
     private static final Map<Class<?>, String> CLASS_SQL_TYPE_MAP = initClassTypeMap();
     private static final Map<Class<?>, FieldCopier> FIELD_COPIER_MAP = initFieldCopierMap();
     private static final Map<Class<?>, FieldResultWriter> FIELD_RESULT_WRITER_MAP = initFieldResultWriterMap();

@@ -54,7 +54,7 @@ public class TableData {
             }
         }
         if (primaryKey == null) {
-            primaryKey = fields[0];
+            primaryKey = fields[0];//use first column as pk
             columns.remove(0);//remove the pk from the column list
         }
         return new TableData(tableName, primaryKey, Collections.unmodifiableList(columns));
@@ -79,17 +79,17 @@ public class TableData {
     private static String camelToSnake(String camel) {
         final StringBuilder sb = new StringBuilder();
         final StringCharacterIterator iter = new StringCharacterIterator(camel);
-        boolean lastLower = false;
+        boolean prevLower = false;
         for (char c = iter.first(); c != CharacterIterator.DONE; c = iter.next()) {
             if (Character.isUpperCase(c)) {
-                if (lastLower) {
+                if (prevLower) {
                     sb.append('_');
                 }
                 sb.append(Character.toLowerCase(c));
-                lastLower = false;
+                prevLower = false;
             } else {
                 sb.append(c);
-                lastLower = true;
+                prevLower = true;
             }
         }
         return sb.toString();
