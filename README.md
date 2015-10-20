@@ -1,25 +1,22 @@
 # dorm -- dumb object relational mapper
-##### Joinless ORM. This library can automagically do single table/object CRUD operations. For more *exotic* things like joins, this library can generate SQL that can then be handed edited and combined with enhanced JDBC wrappers for explicit control. Dorm is a complement to, and not replacement of, JDBC.
+##### Joinless ORM. This library can automagically do single table/object CRUD operations using reflection. For more *exotic* things like joins, this library can generate SQL that can then be edited and combined with enhanced JDBC utilities for explicit data access. Dorm is a complement to, and not replacement of, JDBC.
 
-I was inspired to write this library because I hate Hibernate, but I also hate writing boilerplate JDBC.
-My opinion is that Hibernate is a bloated piece of software where the productivity benefits are not worth the various trade-offs.
-My opinion is also that writing JDBC is time consuming, and the most mundane can largely be meta-programmed by convention.
-
+This is ORM for people that hate Hibernate and it's ilk. Dorm is not going to prescribe your data architecture, your cache layer(s), or help you ignore thinking about transaction boundaries. Dorm will do your simple rote JDBC for you. It also provides JDBC wrappers and utilities that usually come with other huge do-it-all libraries, like Spring.
 #### Dependencies
  * Java 8
 
 ## Usage
-##### Convention -> Table is in lower snake_case, POJO in CamelCase. Primary Key is first/top field. No parameter constructor (any scope). Primitive fields are non-null columns.
+##### Convention -> Table is in lower snake_case, POJO in CamelCase. Primary Key is first/top field. No parameter constructor. Primitive fields are non-null columns.
 Dorm is designed to be as quite minimal, it can work on POJO's without need for annotations if a simple convention is followed.
 Annotations can be used to stray from convention.
 
 Example table (postgres syntax):
 ``` sql
 CREATE TABLE test_bean (
-  test_key BIGSERIAL PRIMARY KEY,
-  some_long BIGINT,
+  test_key    BIGSERIAL PRIMARY KEY,
+  some_long   BIGINT    NOT NULL,
   some_string VARCHAR,
-  some_dtm TIMESTAMP
+  some_dtm    TIMESTAMP
 );
 ```
 Example POJO:
@@ -92,8 +89,8 @@ public class AnnotatedTestBean {
 ```
 #### Enchanced JDBC Support
 Dorm provides utilities to ease the JDBC you still have to do manually.
-BetterPreparedStatement and BetterResultSet classes feature :named parameters, null-safe boxed primitive getting/setting, array type conversion, and java 8 time.
-Class SqlSupport features a simple lambda based API as well as a cascading builder object for one line JDBC calls.
+**BetterPreparedStatement** and **BetterResultSet** classes feature :named parameters, null-safe boxed primitive getting/setting, array type conversion, and java 8 time.
+Class **SqlSupport** features a simple lambda based API as well as a cascading builder object for one line JDBC calls.
 
 Example of method and builder styles:
 ``` java
@@ -136,7 +133,7 @@ int rowsDeleted = SQL_SUPPORT.builder(delete)
         .executeUpdate(connection);
 assertThat(rowsDeleted, equalTo(1));
 ```
-Class SqlTransaction provides one line transactions with lambdas.
+Class **SqlTransaction** provides one line transactions with lambdas.
 ``` java
 TestBean testBean = SqlTransaction.returning(conn -> {
     TestBean insert = DORM.insert(conn, new TestBean(null, Long.MAX_VALUE, "test string", Timestamp.from(Instant.now())));
@@ -147,7 +144,7 @@ assertNotNull(testBean);
 assertThat(testBean.getSomeString(), equalTo("changed string"));
 ```
 
-Class SqlGenerator generates CREATE TABLE and CRUD based on your POJO.<br/>
+Class **SqlGenerator** generates CREATE TABLE and CRUD based on your POJO.<br/>
 Supports both ? parameters and :named parameters.
 ``` java
 SqlGenerator GENERATOR = SqlGenerator.fromDefaults();

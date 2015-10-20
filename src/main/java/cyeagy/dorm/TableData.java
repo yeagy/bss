@@ -5,7 +5,10 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * This class analyzes a POJO via reflection to identify table data
@@ -34,30 +37,54 @@ public class TableData {
         return columns;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TableData tableData = (TableData) o;
+        return Objects.equals(tableName, tableData.tableName) &&
+                Objects.equals(primaryKey, tableData.primaryKey) &&
+                Objects.equals(columns, tableData.columns);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tableName, primaryKey, columns);
+    }
+
+    private static final Map<Class<?>, TableData> METADATA_CACHE = new HashMap<>();
+
     public static TableData from(Class<?> clazz) {
         return from(clazz, true);
     }
 
     public static TableData from(Class<?> clazz, boolean forceAccessible) {
-        final String tableName = getTableName(clazz);
-        final Field[] fields = clazz.getDeclaredFields();
-        final List<Field> columns = new ArrayList<>(fields.length);
-        Field primaryKey = null;
-        for (Field field : fields) {
-            if (field.isAnnotationPresent(Id.class)) {
-                primaryKey = field;
-            } else {
-                columns.add(field);
+        synchronized (METADATA_CACHE) {
+            TableData tableData = METADATA_CACHE.get(clazz);
+            if (tableData == null) {
+                final String tableName = getTableName(clazz);
+                final Field[] fields = clazz.getDeclaredFields();
+                final List<Field> columns = new ArrayList<>(fields.length);
+                Field primaryKey = null;
+                for (Field field : fields) {
+                    if (field.isAnnotationPresent(Id.class)) {
+                        primaryKey = field;
+                    } else {
+                        columns.add(field);
+                    }
+                    if (forceAccessible) {
+                        ReflectUtil.setAccessible(field);
+                    }
+                }
+                if (primaryKey == null) {
+                    primaryKey = fields[0];//use first column as pk
+                    columns.remove(0);//remove the pk from the column list
+                }
+                tableData = new TableData(tableName, primaryKey, Collections.unmodifiableList(columns));
+                METADATA_CACHE.put(clazz, tableData);
             }
-            if (forceAccessible) {
-                ReflectUtil.setAccessible(field);
-            }
+            return tableData;
         }
-        if (primaryKey == null) {
-            primaryKey = fields[0];//use first column as pk
-            columns.remove(0);//remove the pk from the column list
-        }
-        return new TableData(tableName, primaryKey, Collections.unmodifiableList(columns));
     }
 
     public static String getColumnName(Field field) {
