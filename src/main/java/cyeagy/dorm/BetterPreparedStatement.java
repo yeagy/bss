@@ -217,7 +217,10 @@ public class BetterPreparedStatement implements PreparedStatement {
     //arrays convenience
 
     public Array createArray(Object[] elements) throws SQLException {
-        final Class<?> clazz = elements.getClass().getComponentType();
+        if(elements == null || elements.length == 0){
+            throw new IllegalArgumentException("array must have elements");
+        }
+        Class<?> clazz = elements[0].getClass();
         final String sqlType = TypeMappers.getSqlType(clazz);
         if (sqlType == null) {
             throw new SQLException("no sql type found for java class " + clazz.getName());

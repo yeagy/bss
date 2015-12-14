@@ -12,7 +12,6 @@ import java.util.Objects;
 
 /**
  * This class analyzes a POJO via reflection to identify table data
- * this can be created via the SqlGenerator class.
  */
 public class TableData {
     private final String tableName;
@@ -95,10 +94,17 @@ public class TableData {
     public static String getTableName(Class<?> clazz) {
         final Table annotation = clazz.getDeclaredAnnotation(Table.class);
         if (annotation != null) {
-            if (annotation.schema() == null || annotation.schema().isEmpty()) {
-                return annotation.name();
+            if(!annotation.schema().isEmpty()){
+                if(!annotation.name().isEmpty()){
+                    return annotation.schema() + "." + annotation.name();
+                } else {
+                    return annotation.schema() + "." + camelToSnake(clazz.getSimpleName());
+                }
+            } else {
+                if(!annotation.name().isEmpty()){
+                    return annotation.name();
+                }
             }
-            return annotation.schema() + "." + annotation.name();
         }
         return camelToSnake(clazz.getSimpleName());
     }

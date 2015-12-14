@@ -1,7 +1,7 @@
 # dorm -- dumb object relational mapper
-##### Joinless ORM. This library can automagically do single table/object CRUD operations using reflection. For more *exotic* things like joins, this library can generate SQL that can then be edited and combined with enhanced JDBC utilities for explicit data access. Dorm is a complement to, and not replacement of, JDBC.
+##### Joinless ORM. This library can automagically do single table/object CRUD operations using reflection. For more *exotic* things like joins, this library can generate SQL that can then be edited and leveraged with enhanced JDBC utilities for simplified data access. Dorm is a complement to, and not replacement of, JDBC.
 
-This is ORM for people that hate Hibernate and it's ilk. Dorm is not going to prescribe your data architecture, your cache layer(s), or help you ignore thinking about transaction boundaries. Dorm will do your simple rote JDBC for you. It also provides JDBC wrappers and utilities that usually come with other huge do-it-all libraries, like Spring.
+This is ORM for people that hate Hibernate and it's ilk. Dorm is not going to prescribe your data architecture, your cache layer(s), or help you ignore thinking about transaction boundaries. Dorm will do your simple rote JDBC for you, and ease more complex usage.
 #### Dependencies
  * Java 8
 

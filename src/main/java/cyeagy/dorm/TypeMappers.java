@@ -67,33 +67,30 @@ class TypeMappers {
         void set(BetterPreparedStatement ps, Field field, Object target, int idx) throws IllegalAccessException, SQLException;
     }
 
-    //https://db.apache.org/ojb/docu/guides/jdbc-types.html
+    //this is postgres specific: org.postgresql.jdbc2.TypeInfoCache
     private static Map<Class<?>, String> initClassTypeMap() {
         final Map<Class<?>, String> map = new HashMap<>();
-        map.put(Long.class, "BIGINT");
-        map.put(Long.TYPE, "BIGINT");
-        map.put(Integer.class, "INTEGER");
-        map.put(Integer.TYPE, "INTEGER");
-        map.put(Boolean.class, "BOOLEAN");
-        map.put(Boolean.TYPE, "BOOLEAN");
-        map.put(Short.class, "SMALLINT");
-        map.put(Short.TYPE, "SMALLINT");
-        map.put(Byte.class, "TINYINT");
-        map.put(Byte.TYPE, "TINYINT");
-        map.put(Double.class, "DOUBLE");
-        map.put(Double.TYPE, "DOUBLE");
-        map.put(Float.class, "REAL");
-        map.put(Float.TYPE, "REAL");
-        map.put(Character.class, "VARCHAR");
-        map.put(Character.TYPE, "VARCHAR");
-        map.put(String.class, "VARCHAR");
-        map.put(BigDecimal.class, "NUMERIC");
-        map.put(Time.class, "TIME");
-        map.put(Date.class, "DATE");
-        map.put(Timestamp.class, "TIMESTAMP");
-        map.put(Array.class, "ARRAY");
-        map.put(Blob.class, "BLOB");
-        map.put(Clob.class, "CLOB");
+        map.put(Long.class, "int8");
+        map.put(Long.TYPE, "int8");
+        map.put(Integer.class, "int4");
+        map.put(Integer.TYPE, "int4");
+        map.put(Boolean.class, "bool");
+        map.put(Boolean.TYPE, "bool");
+        map.put(Short.class, "int2");
+        map.put(Short.TYPE, "int2");
+        map.put(Byte.class, "int2");
+        map.put(Byte.TYPE, "int2");
+        map.put(Double.class, "float8");
+        map.put(Double.TYPE, "float8");
+        map.put(Float.class, "float4");
+        map.put(Float.TYPE, "float4");
+        map.put(Character.class, "varchar");
+        map.put(Character.TYPE, "varchar");
+        map.put(String.class, "varchar");
+        map.put(BigDecimal.class, "numeric");
+        map.put(Time.class, "time");
+        map.put(Date.class, "date");
+        map.put(Timestamp.class, "timestamp");
         return Collections.unmodifiableMap(map);
     }
 
@@ -161,7 +158,7 @@ class TypeMappers {
         map.put(Double.class, (ps, field, target, idx) -> ps.setDoubleNullable(idx, (Double) readField(field, target)));
         map.put(Boolean.TYPE, (ps, field, target, idx) -> ps.setBoolean(idx, readBoolean(field, target)));
         map.put(Boolean.class, (ps, field, target, idx) -> ps.setBooleanNullable(idx, (Boolean) readField(field, target)));
-        map.put(Short.TYPE, (ps, field, target, idx) -> ps.setBoolean(idx, (Boolean) readField(field, target)));
+        map.put(Short.TYPE, (ps, field, target, idx) -> ps.setShort(idx, readShort(field, target)));
         map.put(Short.class, (ps, field, target, idx) -> ps.setShortNullable(idx, (Short) readField(field, target)));
         map.put(Float.TYPE, (ps, field, target, idx) -> ps.setFloat(idx, readFloat(field, target)));
         map.put(Float.class, (ps, field, target, idx) -> ps.setFloatNullable(idx, (Float) readField(field, target)));

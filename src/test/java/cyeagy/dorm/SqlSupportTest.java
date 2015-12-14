@@ -19,7 +19,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 public class SqlSupportTest {
-    private SqlSupport SQL_SUPPORT = SqlSupport.fromDefaults();
+    private static SqlSupport SQL_SUPPORT = SqlSupport.fromDefaults();
     private static Server server;
     private static Connection connection;
 
