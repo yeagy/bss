@@ -49,7 +49,7 @@ public class IntegrationTest {
                     Time.valueOf(dateTime.toLocalTime()), Date.valueOf(dateTime.toLocalDate()), Timestamp.valueOf(dateTime))));
 
             Set<Long> keys = beans.stream().map(IntegrationTestBean::getTestKey).collect(Collectors.toSet());
-            List<IntegrationTestBean> fromDB = DORM.select(connection, keys, IntegrationTestBean.class);
+            List<IntegrationTestBean> fromDB = DORM.find(connection, keys, IntegrationTestBean.class);
             Set<Long> dbKeys = fromDB.stream().map(IntegrationTestBean::getTestKey).collect(Collectors.toSet());
             assertThat(dbKeys.size(), equalTo(keys.size()));
             assertTrue(dbKeys.containsAll(keys));

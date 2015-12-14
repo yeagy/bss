@@ -58,32 +58,30 @@ public class TableData {
     }
 
     public static TableData from(Class<?> clazz, boolean forceAccessible) {
-        synchronized (METADATA_CACHE) {
-            TableData tableData = METADATA_CACHE.get(clazz);
-            if (tableData == null) {
-                final String tableName = getTableName(clazz);
-                final Field[] fields = clazz.getDeclaredFields();
-                final List<Field> columns = new ArrayList<>(fields.length);
-                Field primaryKey = null;
-                for (Field field : fields) {
-                    if (field.isAnnotationPresent(Id.class)) {
-                        primaryKey = field;
-                    } else {
-                        columns.add(field);
-                    }
-                    if (forceAccessible) {
-                        ReflectUtil.setAccessible(field);
-                    }
+        TableData tableData = METADATA_CACHE.get(clazz);
+        if (tableData == null) {
+            final String tableName = getTableName(clazz);
+            final Field[] fields = clazz.getDeclaredFields();
+            final List<Field> columns = new ArrayList<>(fields.length);
+            Field primaryKey = null;
+            for (Field field : fields) {
+                if (field.isAnnotationPresent(Id.class)) {
+                    primaryKey = field;
+                } else {
+                    columns.add(field);
                 }
-                if (primaryKey == null) {
-                    primaryKey = fields[0];//use first column as pk
-                    columns.remove(0);//remove the pk from the column list
+                if (forceAccessible) {
+                    ReflectUtil.setAccessible(field);
                 }
-                tableData = new TableData(tableName, primaryKey, Collections.unmodifiableList(columns));
-                METADATA_CACHE.put(clazz, tableData);
             }
-            return tableData;
+            if (primaryKey == null) {
+                primaryKey = fields[0];//use first column as pk
+                columns.remove(0);//remove the pk from the column list
+            }
+            tableData = new TableData(tableName, primaryKey, Collections.unmodifiableList(columns));
+            METADATA_CACHE.put(clazz, tableData);
         }
+        return tableData;
     }
 
     public static String getColumnName(Field field) {
@@ -94,14 +92,14 @@ public class TableData {
     public static String getTableName(Class<?> clazz) {
         final Table annotation = clazz.getDeclaredAnnotation(Table.class);
         if (annotation != null) {
-            if(!annotation.schema().isEmpty()){
-                if(!annotation.name().isEmpty()){
+            if (!annotation.schema().isEmpty()) {
+                if (!annotation.name().isEmpty()) {
                     return annotation.schema() + "." + annotation.name();
                 } else {
                     return annotation.schema() + "." + camelToSnake(clazz.getSimpleName());
                 }
             } else {
-                if(!annotation.name().isEmpty()){
+                if (!annotation.name().isEmpty()) {
                     return annotation.name();
                 }
             }

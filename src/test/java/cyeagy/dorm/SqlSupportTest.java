@@ -57,19 +57,19 @@ public class SqlSupportTest {
                 (rs, i) -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm")));
         assertNotNull(testBeans);
         assertThat(testBeans, not(empty()));
-        testBeans.forEach(bean -> assertThat(bean.getTestKey(), greaterThan(1l)));
+        testBeans.forEach(bean -> assertThat(bean.getTestKey(), greaterThan(1L)));
     }
 
     @Test
     public void testSelectMap() throws Exception {
         truncateAndInsert();
         String select = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key > :test_key";
-        final Map<Long, TestBean> testBeans = SQL_SUPPORT.queryMapped(connection, select, ps -> ps.setLong("test_key", 1),
+        final Map<Long, TestBean> testBeans = SQL_SUPPORT.queryMap(connection, select, ps -> ps.setLong("test_key", 1),
                 (rs, i) -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm")),
                 (rs1, idx) -> rs1.getLong("test_key"));
         assertNotNull(testBeans);
         assertThat(testBeans.entrySet(), not(empty()));
-        testBeans.keySet().forEach(key -> assertThat(key, greaterThan(1l)));
+        testBeans.keySet().forEach(key -> assertThat(key, greaterThan(1L)));
     }
 
     @Test

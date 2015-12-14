@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static cyeagy.dorm.ReflectUtil.*;
@@ -24,17 +25,17 @@ public class Dorm {
     private Dorm() { }
 
     /**
-     * execute a select query filtering on the primary key.
+     * execute a select filtering on the primary key.
      *
      * @param connection db connection. close it yourself
      * @param key        primary key to filter on
      * @param clazz      entity type class
      * @param <T>        entity type
-     * @return matching entity or null
+     * @return entity or null
      * @throws SQLException
      * @throws DormException
      */
-    public <T> T select(Connection connection, Object key, Class<T> clazz) throws SQLException, DormException {
+    public <T> T find(Connection connection, Object key, Class<T> clazz) throws SQLException, DormException {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(key);
         Objects.requireNonNull(clazz);
@@ -52,11 +53,11 @@ public class Dorm {
      * @param keys       primary keys to filter on
      * @param clazz      entity type class
      * @param <T>        entity type
-     * @return matching entities or empty set
+     * @return entities or empty set
      * @throws SQLException
      * @throws DormException
      */
-    public <T> List<T> select(Connection connection, Collection<?> keys, Class<T> clazz) throws SQLException, DormException {
+    public <T> List<T> find(Connection connection, Collection<?> keys, Class<T> clazz) throws SQLException, DormException {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(keys);
         Objects.requireNonNull(clazz);
@@ -156,7 +157,99 @@ public class Dorm {
         return SUPPORT.update(connection, delete, ps -> setParameter(ps, key, 1));
     }
 
-    private Object getPrimaryKeyValue(Object entity, TableData tableData) throws DormException {
+    /**
+     * Create a Select Builder. Use to automagically create a entity from an appropriate result set.
+     *
+     * @param sql   select statement
+     * @param clazz entity type class
+     * @param <T>   entity type
+     * @return new SelectBuilder for entity type
+     */
+    public <T> SelectBuilder<T> select(String sql, Class<T> clazz) {
+        return new SelectBuilder<>(sql, clazz);
+    }
+
+    public static class SelectBuilder<T> {
+        private final String sql;
+        private final Class<T> clazz;
+        private QueryBinding queryBinding = null;
+
+        private SelectBuilder(String sql, Class<T> clazz) {
+            Objects.requireNonNull(sql);
+            Objects.requireNonNull(clazz);
+            this.sql = sql;
+            this.clazz = clazz;
+        }
+
+        /**
+         * Optionally bind parameters to the PreparedStatement
+         *
+         * @param queryBinding bind parameter values to the prepared statement (optional)
+         * @return this
+         */
+        public SelectBuilder<T> bind(QueryBinding queryBinding) {
+            Objects.requireNonNull(queryBinding);
+            this.queryBinding = queryBinding;
+            return this;
+        }
+
+        /**
+         * Query for a single result.
+         *
+         * @param connection db connection. close it yourself
+         * @return entity or null
+         * @throws SQLException
+         * @throws DormException
+         */
+        public T one(Connection connection) throws SQLException, DormException {
+            Objects.requireNonNull(connection);
+            final TableData tableData = TableData.from(clazz);
+            return SUPPORT.builder(sql)
+                    .queryBinding(queryBinding)
+                    .resultMapping(rs -> createEntity(rs, tableData, clazz))
+                    .executeQuery(connection);
+        }
+
+        /**
+         * Query for a list of results.
+         *
+         * @param connection db connection. close it yourself
+         * @return entities or empty set
+         * @throws SQLException
+         * @throws DormException
+         */
+        public List<T> list(Connection connection) throws SQLException, DormException {
+            Objects.requireNonNull(connection);
+            final TableData tableData = TableData.from(clazz);
+            return SUPPORT.builder(sql)
+                    .queryBinding(queryBinding)
+                    .resultMapping(rs -> createEntity(rs, tableData, clazz))
+                    .executeQueryList(connection);
+        }
+
+        /**
+         * Return a map of results.
+         *
+         * @param connection db connection. close it yourself
+         * @param keyMapping map the ResultSet to a key
+         * @param <K>        key type
+         * @return entities or empty map
+         * @throws SQLException
+         * @throws DormException
+         */
+        public <K> Map<K, T> map(Connection connection, ResultMapping<K> keyMapping) throws SQLException, DormException {
+            Objects.requireNonNull(connection);
+            final TableData tableData = TableData.from(clazz);
+            return SUPPORT.builder(sql)
+                    .queryBinding(queryBinding)
+                    .resultMapping(rs -> createEntity(rs, tableData, clazz))
+                    .keyMapping(keyMapping)
+                    .executeQueryMapped(connection);
+        }
+
+    }
+
+    private static Object getPrimaryKeyValue(Object entity, TableData tableData) throws DormException {
         try {
             return readField(tableData.getPrimaryKey(), entity);
         } catch (IllegalAccessException e) {
@@ -164,16 +257,7 @@ public class Dorm {
         }
     }
 
-    private <T> T createEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException {
-        final T result = constructNewInstance(clazz);
-        setField(rs, tableData.getPrimaryKey(), result, null);
-        for (Field field : tableData.getColumns()) {
-            setField(rs, field, result, null);
-        }
-        return result;
-    }
-
-    private void copyField(Field field, Object target, Object origin) throws IllegalAccessException {
+    private static void copyField(Field field, Object target, Object origin) throws IllegalAccessException {
         final TypeMappers.FieldCopier copier = TypeMappers.getFieldCopier(field.getType());
         if (copier != null) {
             copier.copy(field, target, origin);
@@ -182,7 +266,25 @@ public class Dorm {
         }
     }
 
-    private void setField(BetterResultSet rs, Field field, Object target, Integer idx) throws SQLException, IllegalAccessException {
+    private static void setParameter(BetterPreparedStatement ps, Object value, int idx) throws SQLException {
+        final TypeMappers.ObjectParamSetter setter = TypeMappers.getObjectParamSetter(value.getClass());
+        if (setter != null) {
+            setter.set(ps, value, idx);
+        } else {
+            ps.setObject(idx, value);
+        }
+    }
+
+    private static void setParameter(BetterPreparedStatement ps, Field field, Object target, int idx) throws IllegalAccessException, SQLException {
+        final TypeMappers.FieldParamSetter setter = TypeMappers.getFieldParamSetter(field.getType());
+        if (setter != null) {
+            setter.set(ps, field, target, idx);
+        } else {
+            ps.setObject(idx, readField(field, target));
+        }
+    }
+
+    private static void setField(BetterResultSet rs, Field field, Object target, Integer idx) throws SQLException, IllegalAccessException {
         final TypeMappers.FieldResultWriter writer = TypeMappers.getFieldResultWriter(field.getType());
         if (writer != null) {
             writer.write(rs, field, target, idx);
@@ -192,21 +294,12 @@ public class Dorm {
         }
     }
 
-    private void setParameter(BetterPreparedStatement ps, Object value, int idx) throws SQLException {
-        final TypeMappers.ObjectParamSetter setter = TypeMappers.getObjectParamSetter(value.getClass());
-        if (setter != null) {
-            setter.set(ps, value, idx);
-        } else {
-            ps.setObject(idx, value);
+    private static <T> T createEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException {
+        final T result = constructNewInstance(clazz);
+        setField(rs, tableData.getPrimaryKey(), result, null);
+        for (Field field : tableData.getColumns()) {
+            setField(rs, field, result, null);
         }
-    }
-
-    private void setParameter(BetterPreparedStatement ps, Field field, Object target, int idx) throws IllegalAccessException, SQLException {
-        final TypeMappers.FieldParamSetter setter = TypeMappers.getFieldParamSetter(field.getType());
-        if (setter != null) {
-            setter.set(ps, field, target, idx);
-        } else {
-            ps.setObject(idx, readField(field, target));
-        }
+        return result;
     }
 }

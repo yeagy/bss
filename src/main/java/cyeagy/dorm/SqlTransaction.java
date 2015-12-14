@@ -115,12 +115,12 @@ public class SqlTransaction {
         return returning;
     }
 
-    private static SQLException chainException(SQLException caught, SQLException e) {
-        if (caught != null) {
-            caught.setNextException(e);
-            return caught;
+    private static SQLException chainException(SQLException last, SQLException next) {
+        if (last != null) {
+            last.setNextException(next);
+            return last;
         }
-        return e;
+        return next;
     }
 
     public static class VoidTransaction {

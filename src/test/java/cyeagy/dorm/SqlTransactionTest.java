@@ -46,12 +46,12 @@ public class SqlTransactionTest {
             TestBean result = DORM.insert(connection, bean);
             assertNotNull(result.getTestKey());
 
-            result = DORM.select(connection, result.getTestKey(), TestBean.class);
+            result = DORM.find(connection, result.getTestKey(), TestBean.class);
             assertThat(result.getSomeString(), equalTo(bean.getSomeString()));
 
             DORM.delete(connection, result.getTestKey(), TestBean.class);
 
-            result = DORM.select(connection, result.getTestKey(), TestBean.class);
+            result = DORM.find(connection, result.getTestKey(), TestBean.class);
             assertNull(result);
         }).execute(connectionH2);
     }

@@ -22,8 +22,8 @@ public class SqlSupport {
      *
      * @param connection db connection. close it yourself
      * @param sql        sql template
-     * @param binding    bind values to the prepared statement (optional)
-     * @param mapping    map values create the result set
+     * @param binding    bind parameter values to the PreparedStatement (optional)
+     * @param mapping    map ResultSet to return entity
      * @param <T>        entity type
      * @return entity or null
      * @throws SQLException
@@ -55,8 +55,8 @@ public class SqlSupport {
      *
      * @param connection db connection. close it yourself
      * @param sql        sql template
-     * @param binding    bind values to the prepared statement (optional)
-     * @param mapping    map values create the result set
+     * @param binding    bind parameter values to the PreparedStatement (optional)
+     * @param mapping    map ResultSet to return entity
      * @param <T>        entity type
      * @return list of entity or empty list
      * @throws SQLException
@@ -89,15 +89,15 @@ public class SqlSupport {
      *
      * @param connection    db connection. close it yourself
      * @param sql           sql template
-     * @param binding       bind values to the prepared statement (optional)
-     * @param resultMapping map values create the result set
-     * @param keyMapping    map key create the result set
+     * @param binding       bind parameter values to the PreparedStatement (optional)
+     * @param resultMapping map ResultSet to return entity
+     * @param keyMapping    map ResultSet to a key
      * @param <K>           key type
      * @param <T>           entity type
      * @return map of entities by key or empty map
      * @throws SQLException
      */
-    public <K, T> Map<K, T> queryMapped(Connection connection, String sql, QueryBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) throws SQLException, DormException {
+    public <K, T> Map<K, T> queryMap(Connection connection, String sql, QueryBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) throws SQLException, DormException {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(sql);
         Objects.requireNonNull(resultMapping);
@@ -126,7 +126,7 @@ public class SqlSupport {
      *
      * @param connection db connection. close it yourself
      * @param sql        sql template
-     * @param binding    bind values to the prepared statement (optional)
+     * @param binding    bind parameter values to the PreparedStatement (optional)
      * @return number of rows updated
      * @throws SQLException
      */
@@ -150,7 +150,7 @@ public class SqlSupport {
      *
      * @param connection db connection. close it yourself
      * @param sql        sql template
-     * @param binding    bind values to the prepared statement
+     * @param binding    bind parameter values to the PreparedStatement
      * @param <K>        key type
      * @return key or null
      * @throws SQLException
@@ -175,27 +175,6 @@ public class SqlSupport {
             throw new DormException(e);
         }
         return key;
-    }
-
-    @FunctionalInterface
-    public interface QueryBinding {
-        void bind(BetterPreparedStatement ps) throws Exception;
-    }
-
-    @FunctionalInterface
-    public interface ResultMapping<T> {
-        T map(BetterResultSet rs, int idx) throws Exception;
-    }
-
-    //can be used inline on the builders, makes for simpler lambdas as people rarely need the result index
-    @FunctionalInterface
-    public interface SimpleResultMapping<T> extends ResultMapping<T> {
-        T map(BetterResultSet rs) throws Exception;
-
-        @Override
-        default T map(BetterResultSet rs, int idx) throws Exception {
-            return map(rs);
-        }
     }
 
     //all cascading builders below
@@ -285,7 +264,7 @@ public class SqlSupport {
         }
     }
 
-    public static class BoundResultBuilder<T>{
+    public static class BoundResultBuilder<T> {
         private final String sql;
         private final QueryBinding queryBinding;
         private final ResultMapping<T> resultMapping;
@@ -313,7 +292,7 @@ public class SqlSupport {
         }
     }
 
-    public static class KeyedResultBuilder<K, T>{
+    public static class KeyedResultBuilder<K, T> {
         private final String sql;
         private final ResultMapping<T> resultMapping;
         private final ResultMapping<K> keyMapping;
@@ -325,7 +304,7 @@ public class SqlSupport {
         }
 
         public Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException {
-            return Builder.SQL_SUPPORT.queryMapped(connection, sql, null, resultMapping, keyMapping);
+            return Builder.SQL_SUPPORT.queryMap(connection, sql, null, resultMapping, keyMapping);
         }
 
         public BoundKeyedResultBuilder<K, T> queryBinding(QueryBinding queryBinding) {
@@ -333,7 +312,7 @@ public class SqlSupport {
         }
     }
 
-    public static class BoundKeyedResultBuilder<K, T>{
+    public static class BoundKeyedResultBuilder<K, T> {
         private final String sql;
         private final QueryBinding queryBinding;
         private final ResultMapping<T> resultMapping;
@@ -347,7 +326,7 @@ public class SqlSupport {
         }
 
         public Map<K, T> executeQueryMapped(Connection connection) throws SQLException, DormException {
-            return Builder.SQL_SUPPORT.queryMapped(connection, sql, queryBinding, resultMapping, keyMapping);
+            return Builder.SQL_SUPPORT.queryMap(connection, sql, queryBinding, resultMapping, keyMapping);
         }
     }
 }

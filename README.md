@@ -50,17 +50,17 @@ TestBean bean = new TestBean(null, Long.MAX_VALUE, "test string", Timestamp.from
 TestBean result = DORM.insert(connection, bean);
 assertNotNull(result.getTestKey());
 
-result = DORM.select(connection, result.getTestKey(), TestBean.class);
+result = DORM.find(connection, result.getTestKey(), TestBean.class);
 assertThat(result.getSomeString(), equalTo(bean.getSomeString()));
 
 DORM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), "changed string", bean.getSomeDtm()));
 
-result = DORM.select(connection, result.getTestKey(), TestBean.class);
+result = DORM.find(connection, result.getTestKey(), TestBean.class);
 assertThat(result.getSomeString(), not(equalTo(bean.getSomeString())));
 
 DORM.delete(connection, result.getTestKey(), TestBean.class);
 
-result = DORM.select(connection, result.getTestKey(), TestBean.class);
+result = DORM.find(connection, result.getTestKey(), TestBean.class);
 assertNull(result);
 ```
 Annotation example:
