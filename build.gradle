@@ -1,4 +1,4 @@
-version = '0.1'
+version = '0.5'
 
 apply plugin: 'java'
 
@@ -13,8 +13,8 @@ repositories {
 sourceSets {
     integrationTest {
         java {
-            compileClasspath += main.output + test.output
-            runtimeClasspath += main.output + test.output
+            compileClasspath += main.output
+            runtimeClasspath += main.output
             srcDir file('src/integration-test/java')
         }
         resources.srcDir file('src/integration-test/resources')
@@ -27,15 +27,11 @@ configurations {
 }
 
 dependencies {
-//    compile 'org.slf4j:slf4j-api:1.7.12'
-//    compile 'com.google.guava:guava:18.0'
-//    compile 'org.apache.commons:commons-lang3:3.4'
-
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-junit:2.0.0.0'
     testCompile 'com.h2database:h2:1.4.189'
-
     integrationTestRuntime 'org.postgresql:postgresql:9.4-1206-jdbc42'
+    integrationTestRuntime 'mysql:mysql-connector-java:5.1.38'
 }
 
 task integrationTest(type: Test) {
