@@ -23,7 +23,7 @@ public class BetterSqlTransaction {
     private BetterSqlTransaction() { }
 
     public static <T> ReturningTransaction<T> returning(TransactionConsumer<T> consumer) {
-        return new ReturningTransaction<>(consumer, null);
+        return returning(null, consumer);
     }
 
     public static <T> ReturningTransaction<T> returning(Isolation isolation, TransactionConsumer<T> consumer) {
@@ -32,7 +32,7 @@ public class BetterSqlTransaction {
     }
 
     public static VoidTransaction with(VoidTransactionConsumer consumer) {
-        return new VoidTransaction(consumer, null);
+        return with(null, consumer);
     }
 
     public static VoidTransaction with(Isolation isolation, VoidTransactionConsumer consumer) {
@@ -48,8 +48,11 @@ public class BetterSqlTransaction {
 
         Integer previousIsolation = null;
         if (isolation != null) {
-            previousIsolation = connection.getTransactionIsolation();
-            connection.setTransactionIsolation(isolation.isolationLevel);
+            int iso = connection.getTransactionIsolation();
+            if(iso != isolation.isolationLevel){
+                previousIsolation = iso;
+                connection.setTransactionIsolation(isolation.isolationLevel);
+            }
         }
 
         T returning = null;

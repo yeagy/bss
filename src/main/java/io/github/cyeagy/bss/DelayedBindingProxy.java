@@ -40,7 +40,7 @@ import java.util.Map;
  * PreparedStatement generally has a 2000 parameter limit
  */
 public class DelayedBindingProxy implements BetterPreparedStatement {
-    private final Connection connection;//loathe having a reference to this
+    private Connection connection;//loathe having a reference to this
     private final String statement;
     private final boolean returnGeneratedKeys;
     private final NamedParameters namedParameters;
@@ -106,7 +106,8 @@ public class DelayedBindingProxy implements BetterPreparedStatement {
         if(indexBindings.size() != qIndex - 1){
             throw new IllegalArgumentException("problem matching parameter markers to number of parameters");
         }
-        final BetterPreparedStatement ps = BetterPreparedStatementImpl.from(connection, processed.toString(), returnGeneratedKeys, null);
+        final BetterPreparedStatement ps = BetterPreparedStatementImpl.from(connection, processed.toString(), returnGeneratedKeys);
+        connection = null;//huzzah to getting rid of this reference
         if (maxFieldSize != null) {
             ps.setMaxFieldSize(maxFieldSize);
         }

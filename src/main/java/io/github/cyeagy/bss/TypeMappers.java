@@ -68,20 +68,20 @@ class TypeMappers {
     //postgres specific: org.postgresql.jdbc2.TypeInfoCache
     private static Map<Class<?>, String> initClassTypeMapPostgres() {
         final Map<Class<?>, String> map = new HashMap<>();
-        map.put(Long.class, "int8");
-        map.put(Long.TYPE, "int8");
-        map.put(Integer.class, "int4");
-        map.put(Integer.TYPE, "int4");
-        map.put(Boolean.class, "bool");
-        map.put(Boolean.TYPE, "bool");
-        map.put(Short.class, "int2");
-        map.put(Short.TYPE, "int2");
-        map.put(Byte.class, "int2");//notably no byte type in postgres
-        map.put(Byte.TYPE, "int2");//notably no byte type in postgres
-        map.put(Double.class, "float8");
-        map.put(Double.TYPE, "float8");
-        map.put(Float.class, "float4");
-        map.put(Float.TYPE, "float4");
+        map.put(Long.class, "bigint");
+        map.put(Long.TYPE, "bigint");
+        map.put(Integer.class, "integer");
+        map.put(Integer.TYPE, "integer");
+        map.put(Boolean.class, "boolean");
+        map.put(Boolean.TYPE, "boolean");
+        map.put(Short.class, "smallint");
+        map.put(Short.TYPE, "smallint");
+        map.put(Byte.class, "smallint");//notably no byte type in postgres
+        map.put(Byte.TYPE, "smallint");//notably no byte type in postgres
+        map.put(Double.class, "float");
+        map.put(Double.TYPE, "float");
+        map.put(Float.class, "float4");//no alias for real in postgres driver
+        map.put(Float.TYPE, "float4");//no alias for real in postgres driver
         map.put(Character.class, "varchar");
         map.put(Character.TYPE, "varchar");
         map.put(String.class, "varchar");

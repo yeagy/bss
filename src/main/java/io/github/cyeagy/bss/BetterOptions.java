@@ -27,7 +27,7 @@ public class BetterOptions {
     }
 
     boolean arraySupport(){
-        return options.contains(Option.ARRAY_SUPPORT);
+        return enabled(Option.ARRAY_SUPPORT);
     }
 
 }

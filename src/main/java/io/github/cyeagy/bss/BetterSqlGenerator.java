@@ -148,9 +148,9 @@ public class BetterSqlGenerator {
 
     public String generateCreateStatement(TableData table) {
         final List<String> columns = new ArrayList<>(table.getColumns().size() + 1);
-        columns.add(getColumnName(table.getPrimaryKey()) + " " + TypeMappers.getSqlType(table.getPrimaryKey().getType()) + " PRIMARY KEY");
+        columns.add(getColumnName(table.getPrimaryKey()) + " " + TypeMappers.getSqlType(table.getPrimaryKey().getType()).toUpperCase() + " PRIMARY KEY");
         for (Field field : table.getColumns()) {
-            columns.add(getColumnName(field) + " " + TypeMappers.getSqlType(field.getType()) + (field.getType().isPrimitive() ? " NOT NULL" : ""));
+            columns.add(getColumnName(field) + " " + TypeMappers.getSqlType(field.getType()).toUpperCase() + (field.getType().isPrimitive() ? " NOT NULL" : ""));
         }
         return formatCreate(table.getTableName(), columns);
     }

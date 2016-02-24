@@ -56,12 +56,13 @@ public class BetterPreparedStatementImpl implements BetterPreparedStatement {
         if (named != null) {
             statement = named.getProcessedSql();
         }
-        return from(connection, statement, returnGeneratedKeys, named);
+        final int returnKeys = returnGeneratedKeys ? RETURN_GENERATED_KEYS : NO_GENERATED_KEYS;
+        return new BetterPreparedStatementImpl(connection.prepareStatement(statement, returnKeys), named);
     }
 
-    static BetterPreparedStatement from(Connection connection, String statement, boolean returnGeneratedKeys, NamedParameters namedParameters) throws SQLException {
+    static BetterPreparedStatement from(Connection connection, String statement, boolean returnGeneratedKeys) throws SQLException {
         final int returnKeys = returnGeneratedKeys ? RETURN_GENERATED_KEYS : NO_GENERATED_KEYS;
-        return new BetterPreparedStatementImpl(connection.prepareStatement(statement, returnKeys), namedParameters);
+        return new BetterPreparedStatementImpl(connection.prepareStatement(statement, returnKeys), null);
     }
 
     //todo beef this up
