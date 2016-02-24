@@ -154,10 +154,11 @@ public class BetterSqlSupport {
 
     /**
      * primarily for single INSERT returning the auto-generated key
+     * if you need a bulk insert (w or w/o returned keys), try using BetterPreparedStatement directly
      *
      * @param connection db connection. close it yourself
      * @param sql        sql template
-     * @param binding    bind parameter values to the PreparedStatement
+     * @param binding    bind parameter values to the PreparedStatement (optional)
      * @param <K>        key type
      * @return key or null
      * @throws SQLException
@@ -165,10 +166,11 @@ public class BetterSqlSupport {
     public <K> K insert(Connection connection, String sql, StatementBinding binding) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(sql);
-        Objects.requireNonNull(binding);
         K key = null;
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql, true, !options.arraySupport())) {
-            binding.bind(ps);
+            if(binding != null) {
+                binding.bind(ps);
+            }
             ps.executeUpdate();
             try (final BetterResultSet rs = BetterResultSet.from(ps.getGeneratedKeys())) {
                 if (rs.next()) {

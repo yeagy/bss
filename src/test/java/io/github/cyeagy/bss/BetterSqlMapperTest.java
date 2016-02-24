@@ -60,14 +60,14 @@ public class BetterSqlMapperTest {
 
     @Test
     public void testFull() throws Exception {
-        TestBean bean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()));
+        TestBean bean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()), 0.0);
         TestBean result = BSM.insert(connection, bean);
         assertNotNull(result.getTestKey());
 
         result = BSM.find(connection, result.getTestKey(), TestBean.class);
         assertThat(result.getSomeString(), equalTo(bean.getSomeString()));
 
-        BSM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), bean.getSomeInt(), "changed string", bean.getSomeDtm()));
+        BSM.update(connection, new TestBean(result.getTestKey(), bean.getSomeLong(), bean.getSomeInt(), "changed string", bean.getSomeDtm(), 0.0));
 
         result = BSM.find(connection, result.getTestKey(), TestBean.class);
         assertThat(result.getSomeString(), not(equalTo(bean.getSomeString())));
@@ -82,7 +82,7 @@ public class BetterSqlMapperTest {
     public void testInsert() throws Exception {
         Timestamp now = Timestamp.from(Instant.now());
         {
-            TestBean testBean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now);
+            TestBean testBean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now, 0.0);
             TestBean result = BSM.insert(connection, testBean);
             assertNotNull(result);
             assertThat(result, is(not(testBean)));
@@ -112,7 +112,7 @@ public class BetterSqlMapperTest {
         Timestamp now = Timestamp.from(Instant.now().plus(1, ChronoUnit.DAYS));
         {
             final long key = 4;
-            TestBean testBean = new TestBean(4l, Long.MAX_VALUE, Integer.MAX_VALUE, "FOURTH", now);
+            TestBean testBean = new TestBean(4l, Long.MAX_VALUE, Integer.MAX_VALUE, "FOURTH", now, 0.0);
 
             final TestBean preSelect = BSM.find(connection, key, TestBean.class);
             assertNotNull(preSelect);
@@ -202,7 +202,7 @@ public class BetterSqlMapperTest {
         Timestamp now = Timestamp.from(Instant.now());
         final List<TestBean> beans = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            beans.add(BSM.insert(connection, new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now)));
+            beans.add(BSM.insert(connection, new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now, 0.0)));
         }
         final List<Long> keys = beans.stream().map(TestBean::getTestKey).collect(Collectors.toList());
         List<TestBean> selected = BSM.find(connection, keys, TestBean.class);

@@ -1,6 +1,7 @@
 package io.github.cyeagy.bss;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
@@ -65,6 +66,9 @@ public class TableData {
             final List<Field> columns = new ArrayList<>(fields.length);
             Field primaryKey = null;
             for (Field field : fields) {
+                if(Modifier.isTransient(field.getModifiers())){
+                    continue;
+                }
                 if (field.isAnnotationPresent(Id.class)) {
                     primaryKey = field;
                 } else {
