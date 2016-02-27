@@ -34,6 +34,7 @@ public class BetterSqlSupport {
      * @param <T>        entity type
      * @return entity or null
      * @throws SQLException
+     * @throws BetterSqlException
      */
     public <T> T query(Connection connection, String sql, StatementBinding binding, ResultMapping<T> mapping) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -67,6 +68,7 @@ public class BetterSqlSupport {
      * @param <T>        entity type
      * @return list of entity or empty list
      * @throws SQLException
+     * @throws BetterSqlException
      */
     public <T> List<T> queryList(Connection connection, String sql, StatementBinding binding, ResultMapping<T> mapping) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -103,6 +105,7 @@ public class BetterSqlSupport {
      * @param <T>           entity type
      * @return map of entities by key or empty map
      * @throws SQLException
+     * @throws BetterSqlException
      */
     public <K, T> Map<K, T> queryMap(Connection connection, String sql, StatementBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -136,6 +139,7 @@ public class BetterSqlSupport {
      * @param binding    bind parameter values to the PreparedStatement (optional)
      * @return number of rows updated
      * @throws SQLException
+     * @throws BetterSqlException
      */
     public int update(Connection connection, String sql, StatementBinding binding) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -162,6 +166,7 @@ public class BetterSqlSupport {
      * @param <K>        key type
      * @return key or null
      * @throws SQLException
+     * @throws BetterSqlException
      */
     public <K> K insert(Connection connection, String sql, StatementBinding binding) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);

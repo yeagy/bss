@@ -18,9 +18,11 @@ import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.Collection;
 
@@ -97,6 +99,14 @@ public interface BetterPreparedStatement extends PreparedStatement {
     void setTimestamp(int parameterIndex, LocalDateTime x) throws SQLException;
 
     void setTimestamp(String namedParameter, LocalDateTime x) throws SQLException;
+
+    void setTimestamp(int parameterIndex, ZonedDateTime x) throws SQLException;
+
+    void setTimestamp(String namedParameter, ZonedDateTime x) throws SQLException;
+
+    void setTimestamp(int parameterIndex, Instant x) throws SQLException;
+
+    void setTimestamp(String namedParameter, Instant x) throws SQLException;
 
     void setNull(String namedParameter, int sqlType) throws SQLException;
 

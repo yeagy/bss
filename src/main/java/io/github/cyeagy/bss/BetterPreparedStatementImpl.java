@@ -23,9 +23,11 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
@@ -185,6 +187,26 @@ public class BetterPreparedStatementImpl implements BetterPreparedStatement {
 
     @Override
     public void setTimestamp(String namedParameter, LocalDateTime x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> setTimestamp(parameterIndex, x));
+    }
+
+    @Override
+    public void setTimestamp(int parameterIndex, ZonedDateTime x) throws SQLException {
+        setTimestamp(parameterIndex, x.toInstant());
+    }
+
+    @Override
+    public void setTimestamp(String namedParameter, ZonedDateTime x) throws SQLException {
+        setNamedParameter(namedParameter, (ps, parameterIndex) -> setTimestamp(parameterIndex, x));
+    }
+
+    @Override
+    public void setTimestamp(int parameterIndex, Instant x) throws SQLException {
+        setTimestamp(parameterIndex, Timestamp.from(x));
+    }
+
+    @Override
+    public void setTimestamp(String namedParameter, Instant x) throws SQLException {
         setNamedParameter(namedParameter, (ps, parameterIndex) -> setTimestamp(parameterIndex, x));
     }
 

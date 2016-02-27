@@ -45,7 +45,7 @@ public class IntegrationTest {
         PG_SUPPORT = BetterSqlSupport.from(pgOptions);
         PG_BEANS = createTestBeans(PG_CONNECTION, PG_MAPPER);
 
-        MY_CONNECTION = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?allowMultiQueries=true&user=root");
+        MY_CONNECTION = DriverManager.getConnection("jdbc:mysql://localhost:3306/?allowMultiQueries=true&user=root");
         String create = new Scanner(IntegrationTest.class.getResourceAsStream("/sql/mysql_create.sql"), "UTF-8").useDelimiter("\\A").next();
         executeStatement(MY_CONNECTION, create);
         MY_MAPPER = BetterSqlMapper.from(BetterOptions.fromDefaults());

@@ -22,9 +22,11 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -270,6 +272,30 @@ public class DelayedBindingProxy implements BetterPreparedStatement {
 
     @Override
     public void setTimestamp(String namedParameter, LocalDateTime x) throws SQLException {
+        for (Integer parameterIndex : namedParameterIndices(namedParameter)) {
+            indexBindings.put(parameterIndex, ps -> ps.setTimestamp(parameterIndex, x));
+        }
+    }
+
+    @Override
+    public void setTimestamp(int parameterIndex, ZonedDateTime x) throws SQLException {
+        indexBindings.put(parameterIndex, ps -> ps.setTimestamp(parameterIndex, x));
+    }
+
+    @Override
+    public void setTimestamp(String namedParameter, ZonedDateTime x) throws SQLException {
+        for (Integer parameterIndex : namedParameterIndices(namedParameter)) {
+            indexBindings.put(parameterIndex, ps -> ps.setTimestamp(parameterIndex, x));
+        }
+    }
+
+    @Override
+    public void setTimestamp(int parameterIndex, Instant x) throws SQLException {
+        indexBindings.put(parameterIndex, ps -> ps.setTimestamp(parameterIndex, x));
+    }
+
+    @Override
+    public void setTimestamp(String namedParameter, Instant x) throws SQLException {
         for (Integer parameterIndex : namedParameterIndices(namedParameter)) {
             indexBindings.put(parameterIndex, ps -> ps.setTimestamp(parameterIndex, x));
         }

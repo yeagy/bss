@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/cyeagy/bss.svg?branch=master)](https://travis-ci.org/cyeagy/bss)
+
 # BSS - Better SQL Support
 ### Lightweight JDBC enhancement library. Joinless ORM.
 ###### Dependencies: Java 8.
@@ -19,8 +21,8 @@ This library can enhance the JDBC experience to one that's bearable. Near decent
  * SQL arrays casted to their java type
 
 [**BetterSqlSupport**](https://github.com/cyeagy/bss/wiki/BetterSqlSupport)
- * provides a java 8 lambda based API encapsulating common CRUD usage of JDBC
- * additionally features a fluent statement builder API for added flexibility
+ * provides a compact lambda based API encapsulating common CRUD usage of JDBC
+ * additional fluent statement builder API for added flexibility
 
 [**BetterSqlMapper**](https://github.com/cyeagy/bss/wiki/BetterSqlMapper)
  * joinless ORM
