@@ -234,7 +234,7 @@ public class BetterSqlMapperTest {
 
         Map<Long, TestBean> beanMap = BSM.select(selectMany, TestBean.class)
                 .bind(ps -> ps.setLong("test_key", 2))
-                .map(connection, (rs, i) -> rs.getLong("test_key"));
+                .map(connection, rs -> rs.getLong("test_key"));
         assertNotNull(beanMap);
         assertThat(beanMap.entrySet(), not(empty()));
         beanMap.keySet().forEach(key -> assertThat(key, greaterThan(2L)));

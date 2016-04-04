@@ -4,16 +4,22 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import static io.github.cyeagy.bss.TableData.getColumnName;
 import static java.util.stream.Collectors.joining;
 
 /**
  * Use reflection to generate SQL prepared statements from POJOs
+ * <p>
+ * Bulk select currently unsupported for compound keys. could do this with a disjunction of conjunctions, but the performance would be abysmal on anything large.
  */
 public class BetterSqlGenerator {
     private static final Collector<CharSequence, ?, String> COMMA_JOIN = joining(", ");
+    private static final Collector<CharSequence, ?, String> AND_JOIN = joining(" AND ");
 
     private final BetterOptions options;
 
@@ -25,36 +31,42 @@ public class BetterSqlGenerator {
         return from(BetterOptions.fromDefaults());
     }
 
-    public static BetterSqlGenerator from(BetterOptions options){
+    public static BetterSqlGenerator from(BetterOptions options) {
         return new BetterSqlGenerator(options);
     }
 
     public String generateSelectSqlTemplate(TableData table) {
-        return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), "?");
+        return formatSelect(columns(table, true), table.getTableName(), primaryKeysWithIndexParams(table));
     }
 
     public String generateSelectSqlTemplateNamed(TableData table) {
-        final String pk = getColumnName(table.getPrimaryKey());
-        return formatSelect(columnsWithPrimaryKey(table), table.getTableName(), pk, ":" + pk);
+        return formatSelect(columns(table, true), table.getTableName(), primaryKeysWithNamedParams(table));
     }
 
-    private String formatSelect(String columns, String tableName, String primaryKey, String primaryKeyValue) {
-        return String.format("SELECT %s FROM %s WHERE %s = %s", columns, tableName, primaryKey, primaryKeyValue);
+    private String formatSelect(String columns, String tableName, String conditions) {
+        return String.format("SELECT %s FROM %s WHERE %s", columns, tableName, conditions);
     }
 
     public String generateBulkSelectSqlTemplate(TableData table) {
-        if(options.arraySupport()){
-            return formatBulkSelectArrayUnnest(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), "?");
+        if (table.getPrimaryKeys().size() > 1) {
+            throw new UnsupportedOperationException("bulk select sql generation not supported for compound keys");
         }
-        return formatBulkSelect(columnsWithPrimaryKey(table), table.getTableName(), getColumnName(table.getPrimaryKey()), "?");
+        final String pk = getColumnName(table.getPrimaryKeys().get(0));
+        if (options.arraySupport()) {
+            return formatBulkSelectArrayUnnest(columns(table, true), table.getTableName(), pk, "?");
+        }
+        return formatBulkSelect(columns(table, true), table.getTableName(), pk, "?");
     }
 
     public String generateBulkSelectSqlTemplateNamed(TableData table) {
-        final String pk = getColumnName(table.getPrimaryKey());
-        if(options.arraySupport()){
-            return formatBulkSelectArrayUnnest(columnsWithPrimaryKey(table), table.getTableName(), pk, ":" + pk);
+        if (table.getPrimaryKeys().size() > 1) {
+            throw new UnsupportedOperationException("bulk select sql generation not supported for compound keys");
         }
-        return formatBulkSelect(columnsWithPrimaryKey(table), table.getTableName(), pk, ":" + pk);
+        final String pk = getColumnName(table.getPrimaryKeys().get(0));
+        if (options.arraySupport()) {
+            return formatBulkSelectArrayUnnest(columns(table, true), table.getTableName(), pk, ":" + pk);
+        }
+        return formatBulkSelect(columns(table, true), table.getTableName(), pk, ":" + pk);
     }
 
     private String formatBulkSelect(String columns, String tableName, String primaryKey, String primaryKeyValue) {
@@ -74,22 +86,14 @@ public class BetterSqlGenerator {
     }
 
     public String generateInsertSqlTemplate(TableData table, boolean includePrimaryKey) {
-        String columns = columns(table);
-        int numCols = table.getColumns().size();
-        if (includePrimaryKey) {
-            columns = getColumnName(table.getPrimaryKey()) + ", " + columns;
-            numCols++;
-        }
+        final String columns = columns(table, includePrimaryKey);
+        final int numCols = includePrimaryKey ? table.getPrimaryKeys().size() + table.getColumns().size() : table.getColumns().size();
         return formatInsert(table.getTableName(), columns, columnsIndexParams(numCols));
     }
 
     public String generateInsertSqlTemplateNamed(TableData table, boolean includePrimaryKey) {
-        String columns = columns(table);
-        String namedParams = columnsNamedParams(table);
-        if (includePrimaryKey) {
-            columns = getColumnName(table.getPrimaryKey()) + ", " + columns;
-            namedParams = ":" + getColumnName(table.getPrimaryKey()) + ", " + columns;
-        }
+        final String columns = columns(table, includePrimaryKey);
+        final String namedParams = columnsAsNamedParams(table, includePrimaryKey);
         return formatInsert(table.getTableName(), columns, namedParams);
     }
 
@@ -98,41 +102,46 @@ public class BetterSqlGenerator {
     }
 
     public String generateUpdateSqlTemplate(TableData table) {
-        return formatUpdate(table.getTableName(), columnsWithIndexParams(table), getColumnName(table.getPrimaryKey()), "?");
+        return formatUpdate(table.getTableName(), columnsWithIndexParams(table), primaryKeysWithIndexParams(table));
     }
 
     public String generateUpdateSqlTemplateNamed(TableData table) {
-        final String pk = getColumnName(table.getPrimaryKey());
-        return formatUpdate(table.getTableName(), columnsWithNamedParams(table), pk, ":" + pk);
+        return formatUpdate(table.getTableName(), columnsWithNamedParams(table), primaryKeysWithNamedParams(table));
     }
 
-    private String formatUpdate(String tableName, String columnsAndValues, String primaryKey, String primaryKeyValue) {
-        return String.format("UPDATE %s SET %s WHERE %s = %s", tableName, columnsAndValues, primaryKey, primaryKeyValue);
+    private String formatUpdate(String tableName, String columnsAndValues, String conditions) {
+        return String.format("UPDATE %s SET %s WHERE %s", tableName, columnsAndValues, conditions);
     }
 
     public String generateDeleteSqlTemplate(TableData table) {
-        return formatDelete(table.getTableName(), getColumnName(table.getPrimaryKey()), "?");
+        return formatDelete(table.getTableName(), primaryKeysWithIndexParams(table));
     }
 
     public String generateDeleteSqlTemplateNamed(TableData table) {
-        final String pk = getColumnName(table.getPrimaryKey());
-        return formatDelete(table.getTableName(), pk, ":" + pk);
+        return formatDelete(table.getTableName(), primaryKeysWithNamedParams(table));
     }
 
-    private String formatDelete(String tableName, String primaryKey, String primaryKeyValue) {
-        return String.format("DELETE FROM %s WHERE %s = %s", tableName, primaryKey, primaryKeyValue);
+    private String formatDelete(String tableName, String conditions) {
+        return String.format("DELETE FROM %s WHERE %s", tableName, conditions);
     }
 
     public String generateBulkDeleteSqlTemplate(TableData table) {
-        if(options.arraySupport()){
-            return formatBulkDeleteArrayUnnest(table.getTableName(), getColumnName(table.getPrimaryKey()), "?");
+        if (table.getPrimaryKeys().size() > 1) {
+            throw new UnsupportedOperationException("bulk delete sql generation not supported for compound keys");
         }
-        return formatBulkDelete(table.getTableName(), getColumnName(table.getPrimaryKey()), "?");
+        final String pk = getColumnName(table.getPrimaryKeys().get(0));
+        if (options.arraySupport()) {
+            return formatBulkDeleteArrayUnnest(table.getTableName(), pk, "?");
+        }
+        return formatBulkDelete(table.getTableName(), pk, "?");
     }
 
     public String generateBulkDeleteSqlTemplateNamed(TableData table) {
-        final String pk = getColumnName(table.getPrimaryKey());
-        if(options.arraySupport()){
+        if (table.getPrimaryKeys().size() > 1) {
+            throw new UnsupportedOperationException("bulk delete sql generation not supported for compound keys");
+        }
+        final String pk = getColumnName(table.getPrimaryKeys().get(0));
+        if (options.arraySupport()) {
             return formatBulkDeleteArrayUnnest(table.getTableName(), pk, ":" + pk);
         }
         return formatBulkDelete(table.getTableName(), pk, ":" + pk);
@@ -146,9 +155,12 @@ public class BetterSqlGenerator {
         return String.format("DELETE FROM %s WHERE %s IN (SELECT unnest(%s))", tableName, primaryKey, primaryKeyValue);
     }
 
+    //todo fix compound keys
     public String generateCreateStatement(TableData table) {
-        final List<String> columns = new ArrayList<>(table.getColumns().size() + 1);
-        columns.add(getColumnName(table.getPrimaryKey()) + " " + TypeMappers.getSqlType(table.getPrimaryKey().getType()).toUpperCase() + " PRIMARY KEY");
+        final List<String> columns = new ArrayList<>(table.getColumns().size() + table.getPrimaryKeys().size());
+        for (Field field : table.getPrimaryKeys()) {
+            columns.add(getColumnName(field) + " " + TypeMappers.getSqlType(field.getType()).toUpperCase() + " PRIMARY KEY");
+        }
         for (Field field : table.getColumns()) {
             columns.add(getColumnName(field) + " " + TypeMappers.getSqlType(field.getType()).toUpperCase() + (field.getType().isPrimitive() ? " NOT NULL" : ""));
         }
@@ -159,16 +171,28 @@ public class BetterSqlGenerator {
         return String.format("CREATE TABLE %s (%s)", tableName, columns.stream().collect(COMMA_JOIN));
     }
 
-    private String columns(TableData table) {
-        return table.getColumns().stream().map(TableData::getColumnName).collect(COMMA_JOIN);
+    private String primaryKeysWithIndexParams(TableData table) {
+        return table.getPrimaryKeys().stream().map(k -> getColumnName(k) + " = ?").collect(AND_JOIN);
     }
 
-    private String columnsWithPrimaryKey(TableData table) {
-        return getColumnName(table.getPrimaryKey()) + ", " + columns(table);
+    private String primaryKeysWithNamedParams(TableData table) {
+        return table.getPrimaryKeys().stream().map(k -> getColumnName(k) + " = :" + getColumnName(k)).collect(AND_JOIN);
     }
 
-    private String columnsNamedParams(TableData table) {
-        return table.getColumns().stream().map(f -> ":" + getColumnName(f)).collect(COMMA_JOIN);
+    private String columns(TableData table, boolean includePrimaryKeys) {
+        final String columns = table.getColumns().stream().map(TableData::getColumnName).collect(COMMA_JOIN);
+        if (includePrimaryKeys) {
+            return table.getPrimaryKeys().stream().map(TableData::getColumnName).collect(COMMA_JOIN) + ", " + columns;
+        }
+        return columns;
+    }
+
+    private String columnsAsNamedParams(TableData table, boolean includePrimaryKeys) {
+        final String columns = table.getColumns().stream().map(f -> ":" + getColumnName(f)).collect(COMMA_JOIN);
+        if (includePrimaryKeys) {
+            return table.getPrimaryKeys().stream().map(f -> ":" + getColumnName(f)).collect(COMMA_JOIN) + ", " + columns;
+        }
+        return columns;
     }
 
     private String columnsWithIndexParams(TableData table) {

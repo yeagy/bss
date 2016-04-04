@@ -6,7 +6,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 class ReflectUtil {
-    private ReflectUtil() { }
+    private ReflectUtil() {
+    }
 
     static Object readField(Field field, Object bean) throws IllegalAccessException {
         return field.get(bean);
@@ -80,8 +81,11 @@ class ReflectUtil {
         field.setChar(bean, value);
     }
 
-    static <T> T constructNewInstance(Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    static <T> T constructNewInstance(Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, BetterSqlException {
         final Constructor<T> constructor = clazz.getDeclaredConstructor();
+        if (constructor == null) {
+            throw new BetterSqlException("zero argument constructor not found on class " + clazz.getSimpleName());
+        }
         setAccessible(constructor);
         return constructor.newInstance();
     }

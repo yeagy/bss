@@ -7,7 +7,7 @@ import java.sql.Timestamp;
 
 @Table(schema = "bss_test", name = "integration_test")
 public class IntegrationTestBean {
-    private Long testKey;
+    @Id private Long testKey;
     private long someLong;
     private int someInt;
     private short someShort;

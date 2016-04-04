@@ -16,25 +16,29 @@ import java.util.Objects;
  */
 public class TableData {
     private final String tableName;
-    private final Field primaryKey;
-    private final List<Field> columns;//excluding PK
+    private final List<Field> primaryKeys;
+    private final List<Field> columns;//excluding PKs
 
-    private TableData(String tableName, Field primaryKey, List<Field> columns) {
+    private TableData(String tableName, List<Field> primaryKeys, List<Field> columns) {
         this.tableName = tableName;
-        this.primaryKey = primaryKey;
-        this.columns = columns;
+        this.primaryKeys = Collections.unmodifiableList(primaryKeys);
+        this.columns = Collections.unmodifiableList(columns);
     }
 
     public String getTableName() {
         return tableName;
     }
 
-    public Field getPrimaryKey() {
-        return primaryKey;
+    public List<Field> getPrimaryKeys() {
+        return primaryKeys;
     }
 
     public List<Field> getColumns() {
         return columns;
+    }
+
+    public boolean hasCompositeKey() {
+        return primaryKeys.size() > 1;
     }
 
     @Override
@@ -43,34 +47,34 @@ public class TableData {
         if (o == null || getClass() != o.getClass()) return false;
         TableData tableData = (TableData) o;
         return Objects.equals(tableName, tableData.tableName) &&
-                Objects.equals(primaryKey, tableData.primaryKey) &&
+                Objects.equals(primaryKeys, tableData.primaryKeys) &&
                 Objects.equals(columns, tableData.columns);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tableName, primaryKey, columns);
+        return Objects.hash(tableName, primaryKeys, columns);
     }
 
     private static final Map<Class<?>, TableData> METADATA_CACHE = new HashMap<>();
 
-    public static TableData from(Class<?> clazz) {
+    public static TableData from(Class<?> clazz) throws BetterSqlException {
         return from(clazz, true);
     }
 
-    public static TableData from(Class<?> clazz, boolean forceAccessible) {
+    public static TableData from(Class<?> clazz, boolean forceAccessible) throws BetterSqlException {
         TableData tableData = METADATA_CACHE.get(clazz);
         if (tableData == null) {
             final String tableName = getTableName(clazz);
             final Field[] fields = clazz.getDeclaredFields();
-            final List<Field> columns = new ArrayList<>(fields.length);
-            Field primaryKey = null;
+            final List<Field> columns = new ArrayList<>(fields.length - 1);
+            final List<Field> primaryKeys = new ArrayList<>(2);
             for (Field field : fields) {
-                if(Modifier.isTransient(field.getModifiers())){
+                if (Modifier.isTransient(field.getModifiers())) {
                     continue;
                 }
                 if (field.isAnnotationPresent(Id.class)) {
-                    primaryKey = field;
+                    primaryKeys.add(field);
                 } else {
                     columns.add(field);
                 }
@@ -78,11 +82,10 @@ public class TableData {
                     ReflectUtil.setAccessible(field);
                 }
             }
-            if (primaryKey == null) {
-                primaryKey = fields[0];//use first column as pk
-                columns.remove(0);//remove the pk from the column list
+            if (primaryKeys.isEmpty()) {
+                throw new BetterSqlException("primary key annotation(s) not found on class " + clazz.getSimpleName());
             }
-            tableData = new TableData(tableName, primaryKey, Collections.unmodifiableList(columns));
+            tableData = new TableData(tableName, primaryKeys, Collections.unmodifiableList(columns));
             METADATA_CACHE.put(clazz, tableData);
         }
         return tableData;

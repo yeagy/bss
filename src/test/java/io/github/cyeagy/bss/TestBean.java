@@ -3,7 +3,7 @@ package io.github.cyeagy.bss;
 import java.sql.Timestamp;
 
 public class TestBean {
-    private Long testKey;
+    @Id private Long testKey;
     private long someLong;
     private int someInt;
     private String someString;

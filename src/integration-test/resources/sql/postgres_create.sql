@@ -16,3 +16,12 @@ CREATE TABLE bss_test.integration_test (
   some_date   DATE,
   some_dtm    TIMESTAMP
 );
+
+CREATE TABLE bss_test.composite_key_test (
+  key_a       BIGSERIAL,
+  key_b       BIGSERIAL,
+  some_long   BIGINT  NOT NULL,
+  some_int    INTEGER NOT NULL,
+  some_string VARCHAR,
+  PRIMARY KEY (key_a, key_b)
+);

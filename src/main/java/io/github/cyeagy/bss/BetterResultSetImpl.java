@@ -36,7 +36,7 @@ import java.util.Objects;
 public class BetterResultSetImpl implements BetterResultSet {
     private final ResultSet rs;
 
-    private BetterResultSetImpl(ResultSet rs) {
+    protected BetterResultSetImpl(ResultSet rs) {
         Objects.requireNonNull(rs);
         this.rs = rs;
     }

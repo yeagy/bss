@@ -20,7 +20,7 @@ public class BetterSqlSupport {
         return from(BetterOptions.fromDefaults());
     }
 
-    public static BetterSqlSupport from(BetterOptions options){
+    public static BetterSqlSupport from(BetterOptions options) {
         return new BetterSqlSupport(options);
     }
 
@@ -47,7 +47,7 @@ public class BetterSqlSupport {
             }
             try (final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
                 if (rs.next()) {
-                    entity = mapping.map(rs, 0);
+                    entity = mapping.map(rs);
                 }
             }
         } catch (SQLException e) {
@@ -80,9 +80,8 @@ public class BetterSqlSupport {
                 binding.bind(ps);
             }
             try (final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
-                int i = 0;
                 while (rs.next()) {
-                    entities.add(mapping.map(rs, i++));
+                    entities.add(mapping.map(rs));
                 }
             }
         } catch (SQLException e) {
@@ -118,9 +117,8 @@ public class BetterSqlSupport {
                 binding.bind(ps);
             }
             try (final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
-                int i = 0;
                 while (rs.next()) {
-                    map.put(keyMapping.map(rs, i), resultMapping.map(rs, i++));
+                    map.put(keyMapping.map(rs), resultMapping.map(rs));
                 }
             }
         } catch (SQLException e) {
@@ -157,7 +155,43 @@ public class BetterSqlSupport {
     }
 
     /**
-     * primarily for single INSERT returning the auto-generated key
+     * primarily for single INSERT. takes a ResultMapping to handle compound keys.
+     * if you need a bulk insert (w or w/o returned keys), try using BetterPreparedStatement directly
+     *
+     * generated keys will transparently have their column names extracted from metadata for convenience.
+     *
+     * @param connection          db connection. close it yourself
+     * @param sql                 sql template
+     * @param binding             bind parameter values to the PreparedStatement (optional)
+     * @param generatedKeyMapping map ResultSet for generated key
+     * @param <K>                 key type
+     * @return key mapping result or null
+     * @throws SQLException
+     * @throws BetterSqlException
+     */
+    public <K> K insert(Connection connection, String sql, StatementBinding binding, ResultMapping<K> generatedKeyMapping) throws SQLException, BetterSqlException {
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(sql);
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql, true, !options.arraySupport())) {
+            if (binding != null) {
+                binding.bind(ps);
+            }
+            ps.executeUpdate();
+            try (final BetterResultSet rs = MetadataTranslatingResultSet.fromGeneratedKeys(ps)) {
+                if (rs.next()) {
+                    return generatedKeyMapping.map(rs);
+                }
+            }
+        } catch (SQLException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BetterSqlException(e);
+        }
+        return null;
+    }
+
+    /**
+     * primarily for single INSERT. this returns a simple (single field) generated key without supplying a result mapping.
      * if you need a bulk insert (w or w/o returned keys), try using BetterPreparedStatement directly
      *
      * @param connection db connection. close it yourself
@@ -173,7 +207,7 @@ public class BetterSqlSupport {
         Objects.requireNonNull(sql);
         K key = null;
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql, true, !options.arraySupport())) {
-            if(binding != null) {
+            if (binding != null) {
                 binding.bind(ps);
             }
             ps.executeUpdate();
@@ -208,6 +242,10 @@ public class BetterSqlSupport {
             return update(connection, sql, null);
         }
 
+        public <K> K executeInsert(Connection connection) throws SQLException, BetterSqlException {
+            return insert(connection, sql, null);
+        }
+
         public BoundBuilder statementBinding(StatementBinding statementBinding) {
             return new BoundBuilder(sql, statementBinding);
         }
@@ -216,8 +254,8 @@ public class BetterSqlSupport {
             return new ResultBuilder<>(sql, resultMapping);
         }
 
-        public <T> ResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping) {
-            return new ResultBuilder<>(sql, resultMapping);
+        public <K> KeyedBuilder<K> keyMapping(ResultMapping<K> keyMapping) {
+            return new KeyedBuilder<>(sql, keyMapping);
         }
     }
 
@@ -242,8 +280,50 @@ public class BetterSqlSupport {
             return new BoundResultBuilder<>(sql, statementBinding, resultMapping);
         }
 
-        public <T> BoundResultBuilder<T> resultMapping(SimpleResultMapping<T> resultMapping) {
-            return new BoundResultBuilder<>(sql, statementBinding, resultMapping);
+        public <K> BoundKeyedBuilder<K> keyMapping(ResultMapping<K> keyMapping) {
+            return new BoundKeyedBuilder<>(sql, statementBinding, keyMapping);
+        }
+    }
+
+    public class KeyedBuilder<K> {
+        private final String sql;
+        private final ResultMapping<K> keyMapping;
+
+        public KeyedBuilder(String sql, ResultMapping<K> keyMapping) {
+            this.sql = sql;
+            this.keyMapping = keyMapping;
+        }
+
+        public K executeInsert(Connection connection) throws SQLException, BetterSqlException {
+            return insert(connection, sql, null, keyMapping);
+        }
+
+        public BoundKeyedBuilder<K> statementBinding(StatementBinding statementBinding) {
+            return new BoundKeyedBuilder<>(sql, statementBinding, keyMapping);
+        }
+
+        public <T> KeyedResultBuilder<K, T> resultMapping(ResultMapping<T> resultMapping) {
+            return new KeyedResultBuilder<>(sql, resultMapping, keyMapping);
+        }
+    }
+
+    public class BoundKeyedBuilder<K> {
+        private final String sql;
+        private final StatementBinding statementBinding;
+        private final ResultMapping<K> keyMapping;
+
+        public BoundKeyedBuilder(String sql, StatementBinding statementBinding, ResultMapping<K> keyMapping) {
+            this.sql = sql;
+            this.statementBinding = statementBinding;
+            this.keyMapping = keyMapping;
+        }
+
+        public K executeInsert(Connection connection) throws SQLException, BetterSqlException {
+            return insert(connection, sql, statementBinding, keyMapping);
+        }
+
+        public <T> BoundKeyedResultBuilder<K, T> resultMapping(ResultMapping<T> resultMapping) {
+            return new BoundKeyedResultBuilder<>(sql, statementBinding, resultMapping, keyMapping);
         }
     }
 
@@ -271,10 +351,6 @@ public class BetterSqlSupport {
         public <K> KeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping) {
             return new KeyedResultBuilder<>(sql, resultMapping, keyMapping);
         }
-
-        public <K> KeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping) {
-            return new KeyedResultBuilder<>(sql, resultMapping, keyMapping);
-        }
     }
 
     public class BoundResultBuilder<T> {
@@ -297,10 +373,6 @@ public class BetterSqlSupport {
         }
 
         public <K> BoundKeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping) {
-            return new BoundKeyedResultBuilder<>(sql, statementBinding, resultMapping, keyMapping);
-        }
-
-        public <K> BoundKeyedResultBuilder<K, T> keyMapping(SimpleResultMapping<K> keyMapping) {
             return new BoundKeyedResultBuilder<>(sql, statementBinding, resultMapping, keyMapping);
         }
     }

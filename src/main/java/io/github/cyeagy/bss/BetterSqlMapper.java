@@ -4,10 +4,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Joinless ORM. No setup required.
@@ -25,7 +28,7 @@ public class BetterSqlMapper {
         return from(BetterOptions.fromDefaults());
     }
 
-    public static BetterSqlMapper from(BetterOptions options){
+    public static BetterSqlMapper from(BetterOptions options) {
         return new BetterSqlMapper(options);
     }
 
@@ -45,6 +48,9 @@ public class BetterSqlMapper {
         Objects.requireNonNull(key);
         Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
+        if(tableData.hasCompositeKey()){
+            throw new BetterSqlException("method not supported for entities with composite keys. try the select builder");
+        }
         final String select = generator.generateSelectSqlTemplate(tableData);
         return support.builder(select).statementBinding(ps -> setParameter(ps, key, 1))
                 .resultMapping(rs -> createEntity(rs, tableData, clazz)).executeQuery(connection);
@@ -66,17 +72,20 @@ public class BetterSqlMapper {
         Objects.requireNonNull(keys);
         Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
+        if(tableData.hasCompositeKey()){
+            throw new BetterSqlException("method not supported for entities with composite keys. try the select builder");
+        }
         final String select = generator.generateBulkSelectSqlTemplate(tableData);
         return support.builder(select).statementBinding(ps -> ps.setArray(1, keys))
                 .resultMapping(rs -> createEntity(rs, tableData, clazz)).executeQueryList(connection);
     }
 
     /**
-     * Update entity.
-     *
+     * Insert entity.
+     * <p>
      * for auto-generated keys, the primary key has to be null in the entity.
      * if the primary key is non-null, the insert will be formatted to insert with that specified primary key.
-     *
+     * <p>
      * dorm will extract the generated key and return it in a copied entity object.
      * this can return a null object if it fails to get the generated key for some reason.
      * if the primary key is non-null, the insert will simply return itself.
@@ -93,26 +102,53 @@ public class BetterSqlMapper {
         Objects.requireNonNull(entity);
         T result = null;
         final TableData tableData = TableData.from(entity.getClass());
-        final Object primaryKey = getPrimaryKeyValue(entity, tableData);
-        final String insert = generator.generateInsertSqlTemplate(tableData, primaryKey != null);
+        final List<FieldValue> primaryKeyValues = getPrimaryKeyValues(entity, tableData);
+        final String insert = generator.generateInsertSqlTemplate(tableData, !primaryKeyValues.isEmpty());
         try {
-            final Object generatedKey = support.insert(connection, insert, ps -> {
+            final BetterSqlSupport.BoundBuilder builder = support.builder(insert).statementBinding(ps -> {
                 int idx = 0;
-                if (primaryKey != null) {
-                    setParameter(ps, primaryKey, ++idx);
+                for (FieldValue primaryKeyValue : primaryKeyValues) {
+                    setParameter(ps, primaryKeyValue.value, ++idx);
                 }
                 for (Field field : tableData.getColumns()) {
                     setParameter(ps, field, entity, ++idx);
                 }
             });
-            if (primaryKey == null && generatedKey != null) {
-                //noinspection unchecked
-                result = ReflectUtil.constructNewInstance((Class<T>) entity.getClass());
-                ReflectUtil.writeField(tableData.getPrimaryKey(), result, generatedKey);
-                for (Field field : tableData.getColumns()) {
-                    copyField(field, result, entity);
+            if (primaryKeyValues.isEmpty()) {
+                if (!tableData.hasCompositeKey()) {
+                    final Object generatedKey = builder.executeInsert(connection);
+                    if (generatedKey != null) {
+                        //noinspection unchecked
+                        result = ReflectUtil.constructNewInstance((Class<T>) entity.getClass());
+                        ReflectUtil.writeField(tableData.getPrimaryKeys().get(0), result, generatedKey);
+                        for (Field field : tableData.getColumns()) {
+                            copyField(field, result, entity);
+                        }
+                    }
+                } else {//compound primary key needs to use metadata translation
+                    final List<FieldValue> generatedKeys = builder.keyMapping(rs -> {
+                        final List<FieldValue> values = new ArrayList<>();
+                        for (Field field : tableData.getPrimaryKeys()) {
+                            values.add(new FieldValue(field, rs.getObject(TableData.getColumnName(field))));
+                        }
+                        return values;
+                    }).executeInsert(connection);
+                    if (!generatedKeys.isEmpty()) {
+                        //noinspection unchecked
+                        result = ReflectUtil.constructNewInstance((Class<T>) entity.getClass());
+                        for (FieldValue key : generatedKeys) {
+                            ReflectUtil.writeField(key.field, result, key.value);
+                        }
+                        for (Field field : tableData.getColumns()) {
+                            copyField(field, result, entity);
+                        }
+                    }
                 }
+            } else {
+                builder.executeUpdate(connection);//"update" because no need for generated keys
+                result = entity;
             }
+
         } catch (IllegalAccessException | NoSuchMethodException | InstantiationException | InvocationTargetException e) {
             throw new BetterSqlException(e);
         }
@@ -131,20 +167,23 @@ public class BetterSqlMapper {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(entity);
         final TableData tableData = TableData.from(entity.getClass());
-        final Object primaryKey = getPrimaryKeyValue(entity, tableData);
-        Objects.requireNonNull(primaryKey, "primary key cannot be null");
+        final List<FieldValue> primaryKeyValues = getPrimaryKeyValues(entity, tableData);
+        if (primaryKeyValues.isEmpty()) {
+            throw new BetterSqlException("primary key(s) cannot be null");
+        }
         final String update = generator.generateUpdateSqlTemplate(tableData);
         final int count = support.update(connection, update, ps -> {
             int idx = 0;
             for (Field field : tableData.getColumns()) {
                 setParameter(ps, field, entity, ++idx);
             }
-            setParameter(ps, primaryKey, ++idx);
+            for (FieldValue primaryKeyValue : primaryKeyValues) {
+                setParameter(ps, primaryKeyValue.value, ++idx);
+            }
         });
-        if(count != 1){
-            final String pkName = TableData.getColumnName(tableData.getPrimaryKey());
-            throw new BetterSqlException(String.format("%s rows updated. 1 row expected. [table %s] primary key %s: %s",
-                    count, tableData.getTableName(), pkName, primaryKey));
+        if (count != 1) {
+            final String pks = primaryKeyValues.stream().map(pk -> TableData.getColumnName(pk.field) + ": " + pk.value).collect(Collectors.joining(", "));
+            throw new BetterSqlException(String.format("%s rows updated. 1 row expected. [table %s] primary key(s) %s", count, tableData.getTableName(), pks));
         }
     }
 
@@ -160,14 +199,20 @@ public class BetterSqlMapper {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(entity);
         final TableData tableData = TableData.from(entity.getClass());
-        final Object primaryKey = getPrimaryKeyValue(entity, tableData);
-        Objects.requireNonNull(primaryKey, "primary key cannot be null");
+        final List<FieldValue> primaryKeyValues = getPrimaryKeyValues(entity, tableData);
+        if (primaryKeyValues.isEmpty()) {
+            throw new BetterSqlException("primary key(s) cannot be null");
+        }
         final String delete = generator.generateDeleteSqlTemplate(tableData);
-        int count = support.update(connection, delete, ps -> setParameter(ps, primaryKey, 1));
-        if(count != 1){
-            final String pkName = TableData.getColumnName(tableData.getPrimaryKey());
-            throw new BetterSqlException(String.format("%s rows deleted. 1 row expected. [table %s] primary key %s: %s",
-                    count, tableData.getTableName(), pkName, primaryKey));
+        int count = support.update(connection, delete, ps -> {
+            int idx = 0;
+            for (FieldValue pk : primaryKeyValues) {
+                setParameter(ps, pk.value, ++idx);
+            }
+        });
+        if (count != 1) {
+            final String pks = primaryKeyValues.stream().map(pk -> TableData.getColumnName(pk.field) + ": " + pk.value).collect(Collectors.joining(", "));
+            throw new BetterSqlException(String.format("%s rows deleted. 1 row expected. [table %s] primary key(s) %s", count, tableData.getTableName(), pks));
         }
     }
 
@@ -177,23 +222,20 @@ public class BetterSqlMapper {
      * @param connection db connection. close it yourself
      * @param key        primary key to filter on
      * @param clazz      entity type class
-     * @return number true if 1 row deleted
+     * @return number of rows deleted
      * @throws SQLException
-     * @throws BetterSqlException if unexpected number of rows updated
+     * @throws BetterSqlException
      */
-    public boolean delete(Connection connection, Object key, Class<?> clazz) throws SQLException, BetterSqlException {
+    public int delete(Connection connection, Object key, Class<?> clazz) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(key);
         Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
-        final String delete = generator.generateDeleteSqlTemplate(tableData);
-        int count = support.update(connection, delete, ps -> setParameter(ps, key, 1));
-        if(count > 1){
-            final String pkName = TableData.getColumnName(tableData.getPrimaryKey());
-            throw new BetterSqlException(String.format("%s rows deleted. 0 or 1 row expected. [table %s] primary key %s: %s",
-                    count, tableData.getTableName(), pkName, key));
+        if(tableData.hasCompositeKey()){
+            throw new BetterSqlException("method not supported for entities with composite keys");
         }
-        return count == 1;
+        final String delete = generator.generateDeleteSqlTemplate(tableData);
+        return support.update(connection, delete, ps -> setParameter(ps, key, 1));
     }
 
     /**
@@ -211,6 +253,9 @@ public class BetterSqlMapper {
         Objects.requireNonNull(keys);
         Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
+        if(tableData.hasCompositeKey()){
+            throw new BetterSqlException("method not supported for entities with composite keys");
+        }
         final String delete = generator.generateBulkDeleteSqlTemplate(tableData);
         return support.update(connection, delete, ps -> ps.setArray(1, keys));
     }
@@ -307,9 +352,25 @@ public class BetterSqlMapper {
 
     }
 
-    private static Object getPrimaryKeyValue(Object entity, TableData tableData) throws BetterSqlException {
+    private static List<FieldValue> getPrimaryKeyValues(Object entity, TableData tableData) throws BetterSqlException {
         try {
-            return ReflectUtil.readField(tableData.getPrimaryKey(), entity);
+            if (!tableData.hasCompositeKey()) {
+                final Field field = tableData.getPrimaryKeys().get(0);
+                final Object value = ReflectUtil.readField(field, entity);
+                return value != null ? Collections.singletonList(new FieldValue(field, value)) : Collections.EMPTY_LIST;
+            } else {
+                final List<FieldValue> values = new ArrayList<>();
+                for (Field field : tableData.getPrimaryKeys()) {
+                    final Object value = ReflectUtil.readField(field, entity);
+                    if (value != null) {
+                        values.add(new FieldValue(field, value));
+                    }
+                }
+                if (!values.isEmpty() && values.size() != tableData.getPrimaryKeys().size()) {
+                    throw new BetterSqlException("composite keys must either be all null or all non-null");
+                }
+                return values;
+            }
         } catch (IllegalAccessException e) {
             throw new BetterSqlException(e);
         }
@@ -352,12 +413,24 @@ public class BetterSqlMapper {
         }
     }
 
-    private static <T> T createEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException {
+    private static <T> T createEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException, BetterSqlException {
         final T result = ReflectUtil.constructNewInstance(clazz);
-        setField(rs, tableData.getPrimaryKey(), result, null);
+        for (Field field : tableData.getPrimaryKeys()) {
+            setField(rs, field, result, null);
+        }
         for (Field field : tableData.getColumns()) {
             setField(rs, field, result, null);
         }
         return result;
+    }
+
+    private static class FieldValue {
+        private final Field field;
+        private final Object value;
+
+        public FieldValue(Field field, Object value) {
+            this.field = field;
+            this.value = value;
+        }
     }
 }

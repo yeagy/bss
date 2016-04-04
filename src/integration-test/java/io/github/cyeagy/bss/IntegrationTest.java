@@ -22,8 +22,7 @@ import java.util.Set;
 
 import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class IntegrationTest {
     private static Connection PG_CONNECTION;
@@ -68,12 +67,43 @@ public class IntegrationTest {
         testSelectWithArray(PG_CONNECTION, PG_MAPPER, PG_BEANS);
     }
 
-    @Ignore
     @Test
     public void testDormSelectWithArrayMysql() throws Exception {
         testSelectWithArray(MY_CONNECTION, MY_MAPPER, MY_BEANS);
     }
 
+    @Test
+    public void testCompositeKeyPostgres() throws Exception {
+        testCompositeKey(PG_CONNECTION, PG_MAPPER);
+    }
+
+    private void testCompositeKey(Connection connection, BetterSqlMapper mapper) throws Exception {
+        long keyA = 1;
+        long keyB = 100;
+        mapper.insert(connection, new CompositeKeyBean(keyA, keyB, -12L, 15, "test"));
+
+        String select = "SELECT * FROM bss_test.composite_key_test WHERE key_a = :a AND key_b = :b";
+        StatementBinding binding = ps -> {
+            ps.setLong("a", keyA);
+            ps.setLong("b", keyB);
+        };
+        CompositeKeyBean bean = mapper.select(select, CompositeKeyBean.class).bind(binding).one(connection);
+
+        assertNotNull(bean);
+        assertThat(bean.getSomeString(), equalTo("test"));
+
+        mapper.update(connection, new CompositeKeyBean(keyA, keyB, -99, 99, "update"));
+
+        bean = mapper.select(select, CompositeKeyBean.class).bind(binding).one(connection);
+
+        assertNotNull(bean);
+        assertThat(bean.getSomeString(), equalTo("update"));
+
+        mapper.delete(connection, bean);
+
+        bean = mapper.select(select, CompositeKeyBean.class).bind(binding).one(connection);
+        assertNull(bean);
+    }
 
     @Test
     public void testStringArray() throws Exception {
