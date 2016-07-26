@@ -68,21 +68,21 @@ class TypeMappers {
     private static Map<Class<?>, String> initClassTypeMapPostgres() {
         final Map<Class<?>, String> map = new HashMap<>();
         map.put(Long.class, "bigint");
-        map.put(Long.TYPE, "bigint");
+        map.put(long.class, "bigint");
         map.put(Integer.class, "integer");
-        map.put(Integer.TYPE, "integer");
+        map.put(int.class, "integer");
         map.put(Boolean.class, "boolean");
-        map.put(Boolean.TYPE, "boolean");
+        map.put(boolean.class, "boolean");
         map.put(Short.class, "smallint");
-        map.put(Short.TYPE, "smallint");
+        map.put(short.class, "smallint");
         map.put(Byte.class, "smallint");//notably no byte type in postgres
-        map.put(Byte.TYPE, "smallint");//notably no byte type in postgres
+        map.put(byte.class, "smallint");//notably no byte type in postgres
         map.put(Double.class, "float");
-        map.put(Double.TYPE, "float");
+        map.put(double.class, "float");
         map.put(Float.class, "float4");//no alias for real in postgres driver
-        map.put(Float.TYPE, "float4");//no alias for real in postgres driver
+        map.put(float.class, "float4");//no alias for real in postgres driver
         map.put(Character.class, "varchar");
-        map.put(Character.TYPE, "varchar");
+        map.put(char.class, "varchar");
         map.put(String.class, "varchar");
         map.put(BigDecimal.class, "numeric");
         map.put(Time.class, "time");
@@ -93,27 +93,27 @@ class TypeMappers {
 
     private static Map<Class<?>, FieldCopier> initFieldCopierMap() {
         final Map<Class<?>, FieldCopier> map = new HashMap<>();
-        map.put(Long.TYPE, (field, target, origin) -> writeLong(field, target, readLong(field, origin)));
-        map.put(Integer.TYPE, (field, target, origin) -> writeInt(field, target, readInt(field, origin)));
-        map.put(Boolean.TYPE, (field, target, origin) -> writeBoolean(field, target, readBoolean(field, origin)));
-        map.put(Double.TYPE, (field, target, origin) -> writeDouble(field, target, readDouble(field, origin)));
-        map.put(Float.TYPE, (field, target, origin) -> writeFloat(field, target, readFloat(field, origin)));
-        map.put(Short.TYPE, (field, target, origin) -> writeShort(field, target, readShort(field, origin)));
-        map.put(Byte.TYPE, (field, target, origin) -> writeByte(field, target, readByte(field, origin)));
-        map.put(Character.TYPE, (field, target, origin) -> writeChar(field, target, readChar(field, origin)));
+        map.put(long.class, (field, target, origin) -> writeLong(field, target, readLong(field, origin)));
+        map.put(int.class, (field, target, origin) -> writeInt(field, target, readInt(field, origin)));
+        map.put(boolean.class, (field, target, origin) -> writeBoolean(field, target, readBoolean(field, origin)));
+        map.put(double.class, (field, target, origin) -> writeDouble(field, target, readDouble(field, origin)));
+        map.put(float.class, (field, target, origin) -> writeFloat(field, target, readFloat(field, origin)));
+        map.put(short.class, (field, target, origin) -> writeShort(field, target, readShort(field, origin)));
+        map.put(byte.class, (field, target, origin) -> writeByte(field, target, readByte(field, origin)));
+        map.put(char.class, (field, target, origin) -> writeChar(field, target, readChar(field, origin)));
         return Collections.unmodifiableMap(map);
     }
 
     private static Map<Class<?>, FieldResultWriter> initFieldResultWriterMap() {
         final Map<Class<?>, FieldResultWriter> map = new HashMap<>();
-        map.put(Long.TYPE, (rs, field, target, idx) -> writeLong(field, target, idx == null ? rs.getLong(TableData.getColumnName(field)) : rs.getLong(idx)));
-        map.put(Integer.TYPE, (rs, field, target, idx) -> writeInt(field, target, idx == null ? rs.getInt(TableData.getColumnName(field)) : rs.getInt(idx)));
-        map.put(Boolean.TYPE, (rs, field, target, idx) -> writeBoolean(field, target, idx == null ? rs.getBoolean(TableData.getColumnName(field)) : rs.getBoolean(idx)));
-        map.put(Double.TYPE, (rs, field, target, idx) -> writeDouble(field, target, idx == null ? rs.getDouble(TableData.getColumnName(field)) : rs.getDouble(idx)));
-        map.put(Float.TYPE, (rs, field, target, idx) -> writeFloat(field, target, idx == null ? rs.getFloat(TableData.getColumnName(field)) : rs.getFloat(idx)));
-        map.put(Short.TYPE, (rs, field, target, idx) -> writeShort(field, target, idx == null ? rs.getShort(TableData.getColumnName(field)) : rs.getShort(idx)));
-        map.put(Byte.TYPE, (rs, field, target, idx) -> writeByte(field, target, idx == null ? rs.getByte(TableData.getColumnName(field)) : rs.getByte(idx)));
-        map.put(Character.TYPE, (rs, field, target, idx) -> {
+        map.put(long.class, (rs, field, target, idx) -> writeLong(field, target, idx == null ? rs.getLong(TableData.getColumnName(field)) : rs.getLong(idx)));
+        map.put(int.class, (rs, field, target, idx) -> writeInt(field, target, idx == null ? rs.getInt(TableData.getColumnName(field)) : rs.getInt(idx)));
+        map.put(boolean.class, (rs, field, target, idx) -> writeBoolean(field, target, idx == null ? rs.getBoolean(TableData.getColumnName(field)) : rs.getBoolean(idx)));
+        map.put(double.class, (rs, field, target, idx) -> writeDouble(field, target, idx == null ? rs.getDouble(TableData.getColumnName(field)) : rs.getDouble(idx)));
+        map.put(float.class, (rs, field, target, idx) -> writeFloat(field, target, idx == null ? rs.getFloat(TableData.getColumnName(field)) : rs.getFloat(idx)));
+        map.put(short.class, (rs, field, target, idx) -> writeShort(field, target, idx == null ? rs.getShort(TableData.getColumnName(field)) : rs.getShort(idx)));
+        map.put(byte.class, (rs, field, target, idx) -> writeByte(field, target, idx == null ? rs.getByte(TableData.getColumnName(field)) : rs.getByte(idx)));
+        map.put(char.class, (rs, field, target, idx) -> {
             final String s = idx == null ? rs.getString(TableData.getColumnName(field)) : rs.getString(idx);
             if (s != null) {
                 if (s.length() != 1) {
@@ -147,21 +147,21 @@ class TypeMappers {
 
     private static Map<Class<?>, FieldParamSetter> initFieldParamSetterMap() {
         final Map<Class<?>, FieldParamSetter> map = new HashMap<>();
-        map.put(Long.TYPE, (ps, field, target, idx) -> ps.setLong(idx, readLong(field, target)));
+        map.put(long.class, (ps, field, target, idx) -> ps.setLong(idx, readLong(field, target)));
         map.put(Long.class, (ps, field, target, idx) -> ps.setLongNullable(idx, (Long) readField(field, target)));
-        map.put(Integer.TYPE, (ps, field, target, idx) -> ps.setInt(idx, readInt(field, target)));
+        map.put(int.class, (ps, field, target, idx) -> ps.setInt(idx, readInt(field, target)));
         map.put(Integer.class, (ps, field, target, idx) -> ps.setIntNullable(idx, (Integer) readField(field, target)));
-        map.put(Double.TYPE, (ps, field, target, idx) -> ps.setDouble(idx, readDouble(field, target)));
+        map.put(double.class, (ps, field, target, idx) -> ps.setDouble(idx, readDouble(field, target)));
         map.put(Double.class, (ps, field, target, idx) -> ps.setDoubleNullable(idx, (Double) readField(field, target)));
-        map.put(Boolean.TYPE, (ps, field, target, idx) -> ps.setBoolean(idx, readBoolean(field, target)));
+        map.put(boolean.class, (ps, field, target, idx) -> ps.setBoolean(idx, readBoolean(field, target)));
         map.put(Boolean.class, (ps, field, target, idx) -> ps.setBooleanNullable(idx, (Boolean) readField(field, target)));
-        map.put(Short.TYPE, (ps, field, target, idx) -> ps.setShort(idx, readShort(field, target)));
+        map.put(short.class, (ps, field, target, idx) -> ps.setShort(idx, readShort(field, target)));
         map.put(Short.class, (ps, field, target, idx) -> ps.setShortNullable(idx, (Short) readField(field, target)));
-        map.put(Float.TYPE, (ps, field, target, idx) -> ps.setFloat(idx, readFloat(field, target)));
+        map.put(float.class, (ps, field, target, idx) -> ps.setFloat(idx, readFloat(field, target)));
         map.put(Float.class, (ps, field, target, idx) -> ps.setFloatNullable(idx, (Float) readField(field, target)));
-        map.put(Byte.TYPE, (ps, field, target, idx) -> ps.setByte(idx, readByte(field, target)));
+        map.put(byte.class, (ps, field, target, idx) -> ps.setByte(idx, readByte(field, target)));
         map.put(Byte.class, (ps, field, target, idx) -> ps.setByteNullable(idx, (Byte) readField(field, target)));
-        map.put(Character.TYPE, (ps, field, target, idx) -> ps.setString(idx, String.valueOf(readChar(field, target))));
+        map.put(char.class, (ps, field, target, idx) -> ps.setString(idx, String.valueOf(readChar(field, target))));
         map.put(Character.class, (ps, field, target, idx) -> ps.setString(idx, Objects.toString(readField(field, target))));
         map.put(String.class, (ps, field, target, idx) -> ps.setString(idx, (String) readField(field, target)));
         map.put(Timestamp.class, (ps, field, target, idx) -> ps.setTimestamp(idx, (Timestamp) readField(field, target)));
