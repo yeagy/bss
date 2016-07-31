@@ -1,8 +1,20 @@
-version = '0.5'
+group = 'io.github.yeagy'
+version = '0.3.0'
+
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
+        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3'
+    }
+}
 
 apply plugin: 'java'
-//apply plugin: 'maven'
-//apply plugin: 'signing'
+apply plugin: 'com.bmuschko.nexus'
+apply plugin: 'io.codearte.nexus-staging'
 
 sourceCompatibility = '1.8'
 
@@ -40,4 +52,32 @@ task integrationTest(type: Test) {
     testClassesDir = sourceSets.integrationTest.output.classesDir
     classpath = sourceSets.integrationTest.runtimeClasspath
     outputs.upToDateWhen { false }
+}
+
+modifyPom {
+    project {
+        name 'Better SQL Support'
+        description 'Lightweight JDBC enhancement library. Joinless ORM.'
+        url 'https://github.com/yeagy/bss'
+
+        scm {
+            url 'https://github.com/yeagy/bss'
+            connection 'scm:https://github.com/yeagy/bss.git'
+            developerConnection 'scm:git://github.com/yeagy/bss.git'
+        }
+
+        licenses {
+            license {
+                name 'The MIT License (MIT)'
+                url 'https://opensource.org/licenses/mit-license.php'
+            }
+        }
+
+        developers {
+            developer {
+                name 'Chris Yeagy'
+                email 'cyeagy@gmail.com'
+            }
+        }
+    }
 }

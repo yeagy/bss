@@ -41,7 +41,7 @@ import java.util.Map;
  * <p>
  * PreparedStatement generally has a 2000 parameter limit
  */
-public class DelayedBindingProxy implements BetterPreparedStatement {
+final class DelayedBindingProxy implements BetterPreparedStatement {
     private Connection connection;//loathe having a reference to this
     private final String statement;
     private final boolean returnGeneratedKeys;
@@ -83,7 +83,7 @@ public class DelayedBindingProxy implements BetterPreparedStatement {
     private abstract static class ArrayBinding implements Binding {
         private final int size;
 
-        protected ArrayBinding(int size) {
+        ArrayBinding(int size) {
             this.size = size;
         }
     }

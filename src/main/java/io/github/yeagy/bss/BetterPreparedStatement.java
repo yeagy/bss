@@ -42,7 +42,7 @@ public interface BetterPreparedStatement extends PreparedStatement {
      * @param connection close this yourself.
      * @param statement  your sql statement
      * @return BetterPreparedStatement
-     * @throws SQLException
+     * @throws SQLException from JDBC
      */
     static BetterPreparedStatement create(Connection connection, String statement) throws SQLException {
         return create(connection, statement, false, false);
@@ -60,7 +60,7 @@ public interface BetterPreparedStatement extends PreparedStatement {
      * @param returnGeneratedKeys true if you want to return generated keys
      * @param simulatedIn         true if you want IN clause array simulation
      * @return BetterPreparedStatement
-     * @throws SQLException
+     * @throws SQLException from JDBC
      */
     static BetterPreparedStatement create(Connection connection, String statement, boolean returnGeneratedKeys, boolean simulatedIn) throws SQLException {
         return BetterPreparedStatementImpl.from(connection, statement, returnGeneratedKeys, simulatedIn);

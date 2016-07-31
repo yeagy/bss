@@ -14,7 +14,7 @@ import java.util.Objects;
 /**
  * This class analyzes a POJO via reflection to identify table data
  */
-public class TableData {
+public final class TableData {
     private final String tableName;
     private final List<Field> primaryKeys;
     private final List<Field> columns;//excluding PKs

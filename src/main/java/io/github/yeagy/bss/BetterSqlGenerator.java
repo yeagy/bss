@@ -13,7 +13,7 @@ import static java.util.stream.Collectors.joining;
  * <p>
  * Bulk select currently unsupported for compound keys. could do this with a disjunction of conjunctions, but the performance would be abysmal on anything large.
  */
-public class BetterSqlGenerator {
+public final class BetterSqlGenerator {
     private static final Collector<CharSequence, ?, String> COMMA_JOIN = joining(", ");
     private static final Collector<CharSequence, ?, String> AND_JOIN = joining(" AND ");
 

@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class NamedParameters {
+final class NamedParameters {
     private final String unprocessedSql;
     private final String processedSql;
     private final Map<String, List<Integer>> indices;

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class BetterSqlSupport {
+public final class BetterSqlSupport {
     private final BetterOptions options;
 
     private BetterSqlSupport(BetterOptions options) {
@@ -33,8 +33,8 @@ public class BetterSqlSupport {
      * @param mapping    map ResultSet to return entity
      * @param <T>        entity type
      * @return entity or null
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public <T> T query(Connection connection, String sql, StatementBinding binding, ResultMapping<T> mapping) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -67,8 +67,8 @@ public class BetterSqlSupport {
      * @param mapping    map ResultSet to return entity
      * @param <T>        entity type
      * @return list of entity or empty list
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public <T> List<T> queryList(Connection connection, String sql, StatementBinding binding, ResultMapping<T> mapping) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -103,8 +103,8 @@ public class BetterSqlSupport {
      * @param <K>           key type
      * @param <T>           entity type
      * @return map of entities by key or empty map
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public <K, T> Map<K, T> queryMap(Connection connection, String sql, StatementBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -136,8 +136,8 @@ public class BetterSqlSupport {
      * @param sql        sql template
      * @param binding    bind parameter values to the PreparedStatement (optional)
      * @return number of rows updated
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public int update(Connection connection, String sql, StatementBinding binding) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -166,8 +166,8 @@ public class BetterSqlSupport {
      * @param generatedKeyMapping map ResultSet for generated key
      * @param <K>                 key type
      * @return key mapping result or null
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public <K> K insert(Connection connection, String sql, StatementBinding binding, ResultMapping<K> generatedKeyMapping) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -199,8 +199,8 @@ public class BetterSqlSupport {
      * @param binding    bind parameter values to the PreparedStatement (optional)
      * @param <K>        key type
      * @return key or null
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public <K> K insert(Connection connection, String sql, StatementBinding binding) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -231,7 +231,7 @@ public class BetterSqlSupport {
         return new Builder(sql);
     }
 
-    public class Builder {
+    public final class Builder {
         private final String sql;
 
         private Builder(String sql) {
@@ -259,7 +259,7 @@ public class BetterSqlSupport {
         }
     }
 
-    public class BoundBuilder {
+    public final class BoundBuilder {
         private final String sql;
         private final StatementBinding statementBinding;
 
@@ -285,7 +285,7 @@ public class BetterSqlSupport {
         }
     }
 
-    public class KeyedBuilder<K> {
+    public final class KeyedBuilder<K> {
         private final String sql;
         private final ResultMapping<K> keyMapping;
 
@@ -307,7 +307,7 @@ public class BetterSqlSupport {
         }
     }
 
-    public class BoundKeyedBuilder<K> {
+    public final class BoundKeyedBuilder<K> {
         private final String sql;
         private final StatementBinding statementBinding;
         private final ResultMapping<K> keyMapping;
@@ -327,7 +327,7 @@ public class BetterSqlSupport {
         }
     }
 
-    public class ResultBuilder<T> {
+    public final class ResultBuilder<T> {
         private final String sql;
         private final ResultMapping<T> resultMapping;
 
@@ -353,7 +353,7 @@ public class BetterSqlSupport {
         }
     }
 
-    public class BoundResultBuilder<T> {
+    public final class BoundResultBuilder<T> {
         private final String sql;
         private final StatementBinding statementBinding;
         private final ResultMapping<T> resultMapping;
@@ -377,7 +377,7 @@ public class BetterSqlSupport {
         }
     }
 
-    public class KeyedResultBuilder<K, T> {
+    public final class KeyedResultBuilder<K, T> {
         private final String sql;
         private final ResultMapping<T> resultMapping;
         private final ResultMapping<K> keyMapping;
@@ -397,7 +397,7 @@ public class BetterSqlSupport {
         }
     }
 
-    public class BoundKeyedResultBuilder<K, T> {
+    public final class BoundKeyedResultBuilder<K, T> {
         private final String sql;
         private final StatementBinding statementBinding;
         private final ResultMapping<T> resultMapping;

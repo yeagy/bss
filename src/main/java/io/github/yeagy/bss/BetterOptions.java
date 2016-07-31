@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public class BetterOptions {
+public final class BetterOptions {
     public enum Option {ARRAY_SUPPORT}
 
     private final Set<Option> options;

@@ -39,7 +39,7 @@ import java.util.Objects;
  * -- Forwards connection create methods
  * -- :named parameters
  */
-public class BetterPreparedStatementImpl implements BetterPreparedStatement {
+final class BetterPreparedStatementImpl implements BetterPreparedStatement {
     private final PreparedStatement ps;
     private final NamedParameters namedParameters;
 

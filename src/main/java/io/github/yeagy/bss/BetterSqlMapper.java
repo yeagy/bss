@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 /**
  * Joinless ORM. No setup required.
  */
-public class BetterSqlMapper {
+public final class BetterSqlMapper {
     private final BetterSqlGenerator generator;
     private final BetterSqlSupport support;
 
@@ -40,8 +40,8 @@ public class BetterSqlMapper {
      * @param clazz      entity type class
      * @param <T>        entity type
      * @return entity or null
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public <T> T find(Connection connection, Object key, Class<T> clazz) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -64,8 +64,8 @@ public class BetterSqlMapper {
      * @param clazz      entity type class
      * @param <T>        entity type
      * @return entities or empty set
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public <T> List<T> find(Connection connection, Collection<?> keys, Class<T> clazz) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -94,8 +94,8 @@ public class BetterSqlMapper {
      * @param entity     entity to insert
      * @param <T>        entity type
      * @return entity with generated primary key. null if there was no generated key returned. the entity itself if the primary key was non-null.
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public <T> T insert(Connection connection, T entity) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -160,8 +160,8 @@ public class BetterSqlMapper {
      *
      * @param connection db connection. close it yourself
      * @param entity     entity to update
-     * @throws SQLException
-     * @throws BetterSqlException if unexpected number of rows updated
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public void update(Connection connection, Object entity) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -192,8 +192,8 @@ public class BetterSqlMapper {
      *
      * @param connection db connection. close it yourself
      * @param entity     entity to delete
-     * @throws SQLException
-     * @throws BetterSqlException if unexpected number of rows updated
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public void delete(Connection connection, Object entity) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -223,8 +223,8 @@ public class BetterSqlMapper {
      * @param key        primary key to filter on
      * @param clazz      entity type class
      * @return number of rows deleted
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public int delete(Connection connection, Object key, Class<?> clazz) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -245,8 +245,8 @@ public class BetterSqlMapper {
      * @param keys       primary keys to filter on
      * @param clazz      entity type class
      * @return number of rows updated
-     * @throws SQLException
-     * @throws BetterSqlException
+     * @throws SQLException from JDBC
+     * @throws BetterSqlException check the message
      */
     public int delete(Connection connection, Collection<?> keys, Class<?> clazz) throws SQLException, BetterSqlException {
         Objects.requireNonNull(connection);
@@ -272,7 +272,7 @@ public class BetterSqlMapper {
         return new SelectBuilder<>(sql, clazz);
     }
 
-    public class SelectBuilder<T> {
+    public final class SelectBuilder<T> {
         private final String sql;
         private final Class<T> clazz;
         private StatementBinding statementBinding = null;
@@ -301,8 +301,8 @@ public class BetterSqlMapper {
          *
          * @param connection db connection. close it yourself
          * @return entity or null
-         * @throws SQLException
-         * @throws BetterSqlException
+         * @throws SQLException from JDBC
+         * @throws BetterSqlException check the message
          */
         public T one(Connection connection) throws SQLException, BetterSqlException {
             Objects.requireNonNull(connection);
@@ -318,8 +318,8 @@ public class BetterSqlMapper {
          *
          * @param connection db connection. close it yourself
          * @return entities or empty set
-         * @throws SQLException
-         * @throws BetterSqlException
+         * @throws SQLException from JDBC
+         * @throws BetterSqlException check the message
          */
         public List<T> list(Connection connection) throws SQLException, BetterSqlException {
             Objects.requireNonNull(connection);
@@ -337,8 +337,8 @@ public class BetterSqlMapper {
          * @param keyMapping map the ResultSet to a key
          * @param <K>        key type
          * @return entities or empty map
-         * @throws SQLException
-         * @throws BetterSqlException
+         * @throws SQLException from JDBC
+         * @throws BetterSqlException check the message
          */
         public <K> Map<K, T> map(Connection connection, ResultMapping<K> keyMapping) throws SQLException, BetterSqlException {
             Objects.requireNonNull(connection);
@@ -424,11 +424,11 @@ public class BetterSqlMapper {
         return result;
     }
 
-    private static class FieldValue {
+    private static final class FieldValue {
         private final Field field;
         private final Object value;
 
-        public FieldValue(Field field, Object value) {
+        FieldValue(Field field, Object value) {
             this.field = field;
             this.value = value;
         }

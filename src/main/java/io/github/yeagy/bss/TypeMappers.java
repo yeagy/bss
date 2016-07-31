@@ -15,7 +15,7 @@ import java.util.Objects;
 
 import static io.github.yeagy.bss.ReflectUtil.*;
 
-class TypeMappers {
+final class TypeMappers {
     private TypeMappers() { }
     private static final Map<Class<?>, String> CLASS_SQL_TYPE_MAP_POSTGRES = initClassTypeMapPostgres();
     private static final Map<Class<?>, FieldCopier> FIELD_COPIER_MAP = initFieldCopierMap();

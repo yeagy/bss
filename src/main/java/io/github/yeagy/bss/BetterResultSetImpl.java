@@ -33,10 +33,10 @@ import java.util.Objects;
  * -- Null-safe primitive get methods
  * -- SQL arrays casted to their java type
  */
-public class BetterResultSetImpl implements BetterResultSet {
+class BetterResultSetImpl implements BetterResultSet {
     private final ResultSet rs;
 
-    protected BetterResultSetImpl(ResultSet rs) {
+    BetterResultSetImpl(ResultSet rs) {
         Objects.requireNonNull(rs);
         this.rs = rs;
     }

@@ -6,7 +6,7 @@ import java.util.Objects;
 
 import static java.sql.Connection.*;
 
-public class BetterSqlTransaction {
+public final class BetterSqlTransaction {
     public enum Isolation {
         READ_UNCOMMITTED(TRANSACTION_READ_UNCOMMITTED),
         READ_COMMITTED(TRANSACTION_READ_COMMITTED),
@@ -126,7 +126,7 @@ public class BetterSqlTransaction {
         return next;
     }
 
-    public static class VoidTransaction {
+    public final static class VoidTransaction {
         private final VoidTransactionConsumer consumer;
         private final Isolation isolation;
 
@@ -144,7 +144,7 @@ public class BetterSqlTransaction {
         }
     }
 
-    public static class ReturningTransaction<T> {
+    public final static class ReturningTransaction<T> {
         private final TransactionConsumer<T> consumer;
         private final Isolation isolation;
 

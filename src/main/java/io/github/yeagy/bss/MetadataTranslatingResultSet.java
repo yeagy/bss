@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * this class is to abstract away needing to use the metadata to find the column names for generated compound keys
  */
-public class MetadataTranslatingResultSet extends BetterResultSetImpl {
+final class MetadataTranslatingResultSet extends BetterResultSetImpl {
     private final Map<String, Integer> metadataColumnNames;
 
     private MetadataTranslatingResultSet(ResultSet rs, Map<String, Integer> metadataColumnNames) {
