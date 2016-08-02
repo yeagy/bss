@@ -108,7 +108,8 @@ final class DelayedBindingProxy implements BetterPreparedStatement {
         if(indexBindings.size() != qIndex - 1){
             throw new IllegalArgumentException("problem matching parameter markers to number of parameters");
         }
-        final BetterPreparedStatement ps = BetterPreparedStatementImpl.from(connection, processed.toString(), returnGeneratedKeys);
+        final int returnKeys = returnGeneratedKeys ? RETURN_GENERATED_KEYS : NO_GENERATED_KEYS;
+        final BetterPreparedStatement ps = new BetterPreparedStatementImpl(connection.prepareStatement(processed.toString(), returnKeys), null);
         connection = null;//huzzah to getting rid of this reference
         if (maxFieldSize != null) {
             ps.setMaxFieldSize(maxFieldSize);
@@ -179,27 +180,27 @@ final class DelayedBindingProxy implements BetterPreparedStatement {
 
     @Override
     public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. See BetterPreparedStatement.setArraySupport().");
+        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. Try BetterOptions.Option.ARRAY_SUPPORT.");
     }
 
     @Override
     public Array createArray(Object[] elements) throws SQLException {
-        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. See BetterPreparedStatement.setArraySupport().");
+        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. Try BetterOptions.Option.ARRAY_SUPPORT.");
     }
 
     @Override
     public Array createArray(Collection<?> elements) throws SQLException {
-        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. See BetterPreparedStatement.setArraySupport().");
+        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. Try BetterOptions.Option.ARRAY_SUPPORT.");
     }
 
     @Override
     public void setArray(String namedParameter, Array x) throws SQLException {
-        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. See BetterPreparedStatement.setArraySupport().");
+        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. Try BetterOptions.Option.ARRAY_SUPPORT.");
     }
 
     @Override
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. See BetterPreparedStatement.setArraySupport().");
+        throw new IllegalStateException("Cannot use SQL Array with DelayedBindingProxy. Try BetterOptions.Option.ARRAY_SUPPORT.");
     }
 
     @Override

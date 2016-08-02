@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/yeagy/bss.svg?branch=master)](https://travis-ci.org/yeagy/bss)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.yeagy/bss/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.yeagy/bss)
-[![Javadocs](http://www.javadoc.io/badge/io.github.yeagy/bss.svg)](http://www.javadoc.io/doc/io.github.yeagy/bss)
+[![Javadocs](http://javadoc-badge.appspot.com/io.github.yeagy/bss.svg?label=javadocs)](http://javadoc-badge.appspot.com/io.github.yeagy/bss)
 
 # BSS - Better SQL Support
 ### Lightweight JDBC enhancement library. Joinless ORM.
@@ -45,6 +45,6 @@ Check out the [wiki](https://github.com/yeagy/bss/wiki) for basic usage examples
 <dependency>
   <groupId>io.github.yeagy</groupId>
   <artifactId>bss</artifactId>
-  <version>0.3.0</version>
+  <version>0.3.1</version>
 </dependency>
 ```

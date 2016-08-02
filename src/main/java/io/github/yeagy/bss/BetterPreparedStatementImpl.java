@@ -39,11 +39,11 @@ import java.util.Objects;
  * -- Forwards connection create methods
  * -- :named parameters
  */
-final class BetterPreparedStatementImpl implements BetterPreparedStatement {
+class BetterPreparedStatementImpl implements BetterPreparedStatement {
     private final PreparedStatement ps;
     private final NamedParameters namedParameters;
 
-    private BetterPreparedStatementImpl(PreparedStatement ps, NamedParameters namedParameters) {
+    BetterPreparedStatementImpl(PreparedStatement ps, NamedParameters namedParameters) {
         this.ps = ps;
         this.namedParameters = namedParameters;
     }
@@ -60,11 +60,6 @@ final class BetterPreparedStatementImpl implements BetterPreparedStatement {
         }
         final int returnKeys = returnGeneratedKeys ? RETURN_GENERATED_KEYS : NO_GENERATED_KEYS;
         return new BetterPreparedStatementImpl(connection.prepareStatement(statement, returnKeys), named);
-    }
-
-    static BetterPreparedStatement from(Connection connection, String statement, boolean returnGeneratedKeys) throws SQLException {
-        final int returnKeys = returnGeneratedKeys ? RETURN_GENERATED_KEYS : NO_GENERATED_KEYS;
-        return new BetterPreparedStatementImpl(connection.prepareStatement(statement, returnKeys), null);
     }
 
     //todo beef this up
