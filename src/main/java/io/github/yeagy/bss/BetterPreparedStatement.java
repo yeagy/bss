@@ -22,7 +22,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.Calendar;
 import java.util.Collection;
 
@@ -100,9 +100,9 @@ public interface BetterPreparedStatement extends PreparedStatement {
 
     void setTimestamp(String namedParameter, LocalDateTime x) throws SQLException;
 
-    void setTimestamp(int parameterIndex, ZonedDateTime x) throws SQLException;
+    void setTimestamp(int parameterIndex, OffsetDateTime x) throws SQLException;
 
-    void setTimestamp(String namedParameter, ZonedDateTime x) throws SQLException;
+    void setTimestamp(String namedParameter, OffsetDateTime x) throws SQLException;
 
     void setTimestamp(int parameterIndex, Instant x) throws SQLException;
 

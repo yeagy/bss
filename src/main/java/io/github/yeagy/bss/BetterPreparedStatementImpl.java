@@ -27,7 +27,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
@@ -130,7 +130,7 @@ class BetterPreparedStatementImpl implements BetterPreparedStatement {
 
     @Override
     public Array createArray(Collection<?> elements) throws SQLException {
-        return createArray(elements.toArray());
+        return createArray(elements == null ? null : elements.toArray());
     }
 
     @Override
@@ -186,18 +186,18 @@ class BetterPreparedStatementImpl implements BetterPreparedStatement {
     }
 
     @Override
-    public void setTimestamp(int parameterIndex, ZonedDateTime x) throws SQLException {
-        setTimestamp(parameterIndex, x.toInstant());
+    public void setTimestamp(int parameterIndex, OffsetDateTime x) throws SQLException {
+        setTimestamp(parameterIndex, x == null ? null : x.toInstant());
     }
 
     @Override
-    public void setTimestamp(String namedParameter, ZonedDateTime x) throws SQLException {
+    public void setTimestamp(String namedParameter, OffsetDateTime x) throws SQLException {
         setNamedParameter(namedParameter, (ps, parameterIndex) -> setTimestamp(parameterIndex, x));
     }
 
     @Override
     public void setTimestamp(int parameterIndex, Instant x) throws SQLException {
-        setTimestamp(parameterIndex, Timestamp.from(x));
+        setTimestamp(parameterIndex, x == null ? null : Timestamp.from(x));
     }
 
     @Override

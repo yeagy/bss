@@ -45,6 +45,6 @@ Check out the [wiki](https://github.com/yeagy/bss/wiki) for basic usage examples
 <dependency>
   <groupId>io.github.yeagy</groupId>
   <artifactId>bss</artifactId>
-  <version>0.3.1</version>
+  <version>0.3.2</version>
 </dependency>
 ```

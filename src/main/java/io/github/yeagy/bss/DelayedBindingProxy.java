@@ -26,7 +26,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -90,12 +90,12 @@ final class DelayedBindingProxy implements BetterPreparedStatement {
 
     private BetterPreparedStatement expandPrepareBind() throws SQLException {
         final StringBuilder processed = new StringBuilder();
-        int qIndex = 1;
+        int qIndex = 0;
         //todo surely there are edge case bugs here
         for (int i = 0; i < statement.length(); i++) {
             final char c = statement.charAt(i);
             if (c == '?') {
-                Binding binding = indexBindings.get(qIndex++);
+                Binding binding = indexBindings.get(++qIndex);
                 if (binding instanceof ArrayBinding) {
                     processed.append(String.join(", ", Collections.nCopies(((ArrayBinding) binding).size, "?")));
                 } else {
@@ -105,7 +105,7 @@ final class DelayedBindingProxy implements BetterPreparedStatement {
                 processed.append(c);
             }
         }
-        if(indexBindings.size() != qIndex - 1){
+        if(indexBindings.size() != qIndex){
             throw new IllegalArgumentException("problem matching parameter markers to number of parameters");
         }
         final int returnKeys = returnGeneratedKeys ? RETURN_GENERATED_KEYS : NO_GENERATED_KEYS;
@@ -279,12 +279,12 @@ final class DelayedBindingProxy implements BetterPreparedStatement {
     }
 
     @Override
-    public void setTimestamp(int parameterIndex, ZonedDateTime x) throws SQLException {
+    public void setTimestamp(int parameterIndex, OffsetDateTime x) throws SQLException {
         indexBindings.put(parameterIndex, ps -> ps.setTimestamp(parameterIndex, x));
     }
 
     @Override
-    public void setTimestamp(String namedParameter, ZonedDateTime x) throws SQLException {
+    public void setTimestamp(String namedParameter, OffsetDateTime x) throws SQLException {
         for (Integer parameterIndex : namedParameterIndices(namedParameter)) {
             indexBindings.put(parameterIndex, ps -> ps.setTimestamp(parameterIndex, x));
         }

@@ -1,5 +1,6 @@
 package io.github.yeagy.bss;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
@@ -119,8 +120,8 @@ public final class BetterSqlMapper {
                     final Object generatedKey = builder.executeInsert(connection);
                     if (generatedKey != null) {
                         //noinspection unchecked
-                        result = ReflectUtil.constructNewInstance((Class<T>) entity.getClass());
-                        ReflectUtil.writeField(tableData.getPrimaryKeys().get(0), result, generatedKey);
+                        result = constructNewInstance((Class<T>) entity.getClass());
+                        tableData.getPrimaryKeys().get(0).set(result, generatedKey);
                         for (Field field : tableData.getColumns()) {
                             copyField(field, result, entity);
                         }
@@ -135,9 +136,9 @@ public final class BetterSqlMapper {
                     }).executeInsert(connection);
                     if (!generatedKeys.isEmpty()) {
                         //noinspection unchecked
-                        result = ReflectUtil.constructNewInstance((Class<T>) entity.getClass());
+                        result = constructNewInstance((Class<T>) entity.getClass());
                         for (FieldValue key : generatedKeys) {
-                            ReflectUtil.writeField(key.field, result, key.value);
+                            key.field.set(result, key.value);
                         }
                         for (Field field : tableData.getColumns()) {
                             copyField(field, result, entity);
@@ -356,12 +357,12 @@ public final class BetterSqlMapper {
         try {
             if (!tableData.hasCompositeKey()) {
                 final Field field = tableData.getPrimaryKeys().get(0);
-                final Object value = ReflectUtil.readField(field, entity);
+                final Object value = field.get(entity);
                 return value != null ? Collections.singletonList(new FieldValue(field, value)) : Collections.EMPTY_LIST;
             } else {
                 final List<FieldValue> values = new ArrayList<>();
                 for (Field field : tableData.getPrimaryKeys()) {
-                    final Object value = ReflectUtil.readField(field, entity);
+                    final Object value = field.get(entity);
                     if (value != null) {
                         values.add(new FieldValue(field, value));
                     }
@@ -381,7 +382,7 @@ public final class BetterSqlMapper {
         if (copier != null) {
             copier.copy(field, target, origin);
         } else {
-            ReflectUtil.writeField(field, target, ReflectUtil.readField(field, origin));
+            field.set(target, field.get(origin));
         }
     }
 
@@ -399,7 +400,7 @@ public final class BetterSqlMapper {
         if (setter != null) {
             setter.set(ps, field, target, idx);
         } else {
-            ps.setObject(idx, ReflectUtil.readField(field, target));
+            ps.setObject(idx, field.get(target));
         }
     }
 
@@ -409,12 +410,12 @@ public final class BetterSqlMapper {
             writer.write(rs, field, target, idx);
         } else {
             final Object v = idx == null ? rs.getObject(TableData.getColumnName(field)) : rs.getObject(idx);
-            ReflectUtil.writeField(field, target, v);
+            field.set(target, v);
         }
     }
 
     private static <T> T createEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException, BetterSqlException {
-        final T result = ReflectUtil.constructNewInstance(clazz);
+        final T result = constructNewInstance(clazz);
         for (Field field : tableData.getPrimaryKeys()) {
             setField(rs, field, result, null);
         }
@@ -422,6 +423,17 @@ public final class BetterSqlMapper {
             setField(rs, field, result, null);
         }
         return result;
+    }
+
+    private static <T> T constructNewInstance(Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, BetterSqlException {
+        final Constructor<T> constructor = clazz.getDeclaredConstructor();
+        if (constructor == null) {
+            throw new BetterSqlException("zero argument constructor not found on class " + clazz.getSimpleName());
+        }
+        if (!constructor.isAccessible()) {
+            constructor.setAccessible(true);
+        }
+        return constructor.newInstance();
     }
 
     private static final class FieldValue {

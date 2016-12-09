@@ -2,8 +2,6 @@ package io.github.yeagy.bss;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.text.CharacterIterator;
-import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -78,8 +76,8 @@ public final class TableData {
                 } else {
                     columns.add(field);
                 }
-                if (forceAccessible) {
-                    ReflectUtil.setAccessible(field);
+                if (forceAccessible && !field.isAccessible()) {
+                    field.setAccessible(true);
                 }
             }
             if (primaryKeys.isEmpty()) {
@@ -116,9 +114,9 @@ public final class TableData {
 
     private static String camelToSnake(String camel) {
         final StringBuilder sb = new StringBuilder();
-        final StringCharacterIterator iter = new StringCharacterIterator(camel);
         boolean prevLower = false;
-        for (char c = iter.first(); c != CharacterIterator.DONE; c = iter.next()) {
+        for (int i = 0; i < camel.length(); i++) {
+            char c = camel.charAt(i);
             if (Character.isUpperCase(c)) {
                 if (prevLower) {
                     sb.append('_');
