@@ -44,10 +44,10 @@ public final class BetterSqlGenerator {
     }
 
     public String generateBulkSelectSqlTemplate(TableData table) {
-        if (table.getPrimaryKeys().size() > 1) {
+        if (table.hasCompositeKey()) {
             throw new UnsupportedOperationException("bulk select sql generation not supported for compound keys");
         }
-        final String pk = TableData.getColumnName(table.getPrimaryKeys().get(0));
+        final String pk = TableData.getColumnName(table.getPrimaryKey());
         if (options.arraySupport()) {
             return formatBulkSelectArrayUnnest(columns(table, true), table.getTableName(), pk, "?");
         }
@@ -55,10 +55,10 @@ public final class BetterSqlGenerator {
     }
 
     public String generateBulkSelectSqlTemplateNamed(TableData table) {
-        if (table.getPrimaryKeys().size() > 1) {
+        if (table.hasCompositeKey()) {
             throw new UnsupportedOperationException("bulk select sql generation not supported for compound keys");
         }
-        final String pk = TableData.getColumnName(table.getPrimaryKeys().get(0));
+        final String pk = TableData.getColumnName(table.getPrimaryKey());
         if (options.arraySupport()) {
             return formatBulkSelectArrayUnnest(columns(table, true), table.getTableName(), pk, ":" + pk);
         }
@@ -122,10 +122,10 @@ public final class BetterSqlGenerator {
     }
 
     public String generateBulkDeleteSqlTemplate(TableData table) {
-        if (table.getPrimaryKeys().size() > 1) {
+        if (table.hasCompositeKey()) {
             throw new UnsupportedOperationException("bulk delete sql generation not supported for compound keys");
         }
-        final String pk = TableData.getColumnName(table.getPrimaryKeys().get(0));
+        final String pk = TableData.getColumnName(table.getPrimaryKey());
         if (options.arraySupport()) {
             return formatBulkDeleteArrayUnnest(table.getTableName(), pk, "?");
         }
@@ -133,10 +133,10 @@ public final class BetterSqlGenerator {
     }
 
     public String generateBulkDeleteSqlTemplateNamed(TableData table) {
-        if (table.getPrimaryKeys().size() > 1) {
+        if (table.hasCompositeKey()) {
             throw new UnsupportedOperationException("bulk delete sql generation not supported for compound keys");
         }
-        final String pk = TableData.getColumnName(table.getPrimaryKeys().get(0));
+        final String pk = TableData.getColumnName(table.getPrimaryKey());
         if (options.arraySupport()) {
             return formatBulkDeleteArrayUnnest(table.getTableName(), pk, ":" + pk);
         }

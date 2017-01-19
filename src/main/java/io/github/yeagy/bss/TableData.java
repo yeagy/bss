@@ -39,6 +39,13 @@ public final class TableData {
         return primaryKeys.size() > 1;
     }
 
+    public Field getPrimaryKey(){
+        if(primaryKeys.size() != 1){
+            throw new BetterSqlException(String.format("table %s has %s primary keys!", tableName, primaryKeys.size()));
+        }
+        return primaryKeys.get(0);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -56,11 +63,11 @@ public final class TableData {
 
     private static final Map<Class<?>, TableData> METADATA_CACHE = new HashMap<>();
 
-    public static TableData from(Class<?> clazz) throws BetterSqlException {
+    public static TableData from(Class<?> clazz) {
         return from(clazz, true);
     }
 
-    public static TableData from(Class<?> clazz, boolean forceAccessible) throws BetterSqlException {
+    public static TableData from(Class<?> clazz, boolean forceAccessible) {
         TableData tableData = METADATA_CACHE.get(clazz);
         if (tableData == null) {
             final String tableName = getTableName(clazz);

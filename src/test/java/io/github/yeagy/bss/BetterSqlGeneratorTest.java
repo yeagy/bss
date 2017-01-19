@@ -13,7 +13,7 @@ public class BetterSqlGeneratorTest {
     private static final BetterSqlGenerator GENERATOR_ARRAY = BetterSqlGenerator.from(BetterOptions.from(BetterOptions.Option.ARRAY_SUPPORT));
 
     @Test
-    public void testGenerateSelectSqlTemplate() throws Exception {
+    public void testGenerateSelectSqlTemplate() {
         String control = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key = ?";
         TableData tableData = TableData.from(TestBean.class);
         String select = GENERATOR.generateSelectSqlTemplate(tableData);
@@ -21,7 +21,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateSelectSqlTemplateNamed() throws Exception {
+    public void testGenerateSelectSqlTemplateNamed() {
         String control = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key = :test_key";
         TableData tableData = TableData.from(TestBean.class);
         String select = GENERATOR.generateSelectSqlTemplateNamed(tableData);
@@ -29,7 +29,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateBulkSelectSqlTemplate() throws Exception {
+    public void testGenerateBulkSelectSqlTemplate() {
         String control = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key IN (?)";
         TableData tableData = TableData.from(TestBean.class);
         String select = GENERATOR.generateBulkSelectSqlTemplate(tableData);
@@ -41,7 +41,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateBulkSelectSqlTemplateNamed() throws Exception {
+    public void testGenerateBulkSelectSqlTemplateNamed() {
         String control = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key IN (:test_key)";
         TableData tableData = TableData.from(TestBean.class);
         String select = GENERATOR.generateBulkSelectSqlTemplateNamed(tableData);
@@ -53,7 +53,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateInsertSqlTemplate() throws Exception {
+    public void testGenerateInsertSqlTemplate() {
         String control = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm) VALUES (?, ?, ?, ?)";
         TableData tableData = TableData.from(TestBean.class);
         String insert = GENERATOR.generateInsertSqlTemplate(tableData);
@@ -61,7 +61,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateInsertSqlTemplateNamed() throws Exception {
+    public void testGenerateInsertSqlTemplateNamed() {
         String control = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm) VALUES (:some_long, :some_int, :some_string, :some_dtm)";
         TableData tableData = TableData.from(TestBean.class);
         String insert = GENERATOR.generateInsertSqlTemplateNamed(tableData);
@@ -69,7 +69,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateUpdateSqlTemplate() throws Exception {
+    public void testGenerateUpdateSqlTemplate() {
         String control = "UPDATE test_bean SET some_long = ?, some_int = ?, some_string = ?, some_dtm = ? WHERE test_key = ?";
         TableData tableData = TableData.from(TestBean.class);
         String update = GENERATOR.generateUpdateSqlTemplate(tableData);
@@ -77,7 +77,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateUpdateSqlTemplateNamed() throws Exception {
+    public void testGenerateUpdateSqlTemplateNamed() {
         String control = "UPDATE test_bean SET some_long = :some_long, some_int = :some_int, some_string = :some_string, some_dtm = :some_dtm WHERE test_key = :test_key";
         TableData tableData = TableData.from(TestBean.class);
         String update = GENERATOR.generateUpdateSqlTemplateNamed(tableData);
@@ -85,7 +85,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateDeleteSqlTemplate() throws Exception {
+    public void testGenerateDeleteSqlTemplate() {
         String control = "DELETE FROM test_bean WHERE test_key = ?";
         TableData tableData = TableData.from(TestBean.class);
         String delete = GENERATOR.generateDeleteSqlTemplate(tableData);
@@ -93,7 +93,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateDeleteSqlTemplateNamed() throws Exception {
+    public void testGenerateDeleteSqlTemplateNamed() {
         String control = "DELETE FROM test_bean WHERE test_key = :test_key";
         TableData tableData = TableData.from(TestBean.class);
         String delete = GENERATOR.generateDeleteSqlTemplateNamed(tableData);
@@ -101,7 +101,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateBulkDeleteSqlTemplate() throws Exception {
+    public void testGenerateBulkDeleteSqlTemplate() {
         String control = "DELETE FROM test_bean WHERE test_key IN (?)";
         TableData tableData = TableData.from(TestBean.class);
         String delete = GENERATOR.generateBulkDeleteSqlTemplate(tableData);
@@ -113,7 +113,7 @@ public class BetterSqlGeneratorTest {
     }
 
     @Test
-    public void testGenerateBulkDeleteSqlTemplateNamed() throws Exception {
+    public void testGenerateBulkDeleteSqlTemplateNamed() {
         String control = "DELETE FROM test_bean WHERE test_key IN (:test_key)";
         TableData tableData = TableData.from(TestBean.class);
         String delete = GENERATOR.generateBulkDeleteSqlTemplateNamed(tableData);
@@ -126,7 +126,7 @@ public class BetterSqlGeneratorTest {
 
     @Ignore//for now now using postgres data types
     @Test
-    public void testGenerateCreateStatement() throws Exception {
+    public void testGenerateCreateStatement() {
         String control = new Scanner(BetterSqlMapperTest.class.getResourceAsStream("/sql/test_create.sql"), "UTF-8").useDelimiter("\\A").next();
         control = control.replaceAll("\\n", "").replaceAll("  ", " ").replaceAll("\\( ", "\\(").replaceAll(" AUTO_INCREMENT", "");
         TableData tableData = TableData.from(TestBean.class);

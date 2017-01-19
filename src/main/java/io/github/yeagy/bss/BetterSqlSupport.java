@@ -1,7 +1,6 @@
 package io.github.yeagy.bss;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * CRUD automagic
+ */
 public final class BetterSqlSupport {
     private final BetterOptions options;
 
@@ -33,10 +35,8 @@ public final class BetterSqlSupport {
      * @param mapping    map ResultSet to return entity
      * @param <T>        entity type
      * @return entity or null
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public <T> T query(Connection connection, String sql, StatementBinding binding, ResultMapping<T> mapping) throws SQLException, BetterSqlException {
+    public <T> T query(Connection connection, String sql, StatementBinding binding, ResultMapping<T> mapping) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(sql);
         Objects.requireNonNull(mapping);
@@ -50,9 +50,7 @@ public final class BetterSqlSupport {
                     entity = mapping.map(rs);
                 }
             }
-        } catch (SQLException e) {
-            throw e;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             throw new BetterSqlException(e);
         }
         return entity;
@@ -67,10 +65,8 @@ public final class BetterSqlSupport {
      * @param mapping    map ResultSet to return entity
      * @param <T>        entity type
      * @return list of entity or empty list
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public <T> List<T> queryList(Connection connection, String sql, StatementBinding binding, ResultMapping<T> mapping) throws SQLException, BetterSqlException {
+    public <T> List<T> queryList(Connection connection, String sql, StatementBinding binding, ResultMapping<T> mapping) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(sql);
         Objects.requireNonNull(mapping);
@@ -84,8 +80,6 @@ public final class BetterSqlSupport {
                     entities.add(mapping.map(rs));
                 }
             }
-        } catch (SQLException e) {
-            throw e;
         } catch (Exception e) {
             throw new BetterSqlException(e);
         }
@@ -103,10 +97,8 @@ public final class BetterSqlSupport {
      * @param <K>           key type
      * @param <T>           entity type
      * @return map of entities by key or empty map
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public <K, T> Map<K, T> queryMap(Connection connection, String sql, StatementBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) throws SQLException, BetterSqlException {
+    public <K, T> Map<K, T> queryMap(Connection connection, String sql, StatementBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(sql);
         Objects.requireNonNull(resultMapping);
@@ -121,8 +113,6 @@ public final class BetterSqlSupport {
                     map.put(keyMapping.map(rs), resultMapping.map(rs));
                 }
             }
-        } catch (SQLException e) {
-            throw e;
         } catch (Exception e) {
             throw new BetterSqlException(e);
         }
@@ -136,10 +126,8 @@ public final class BetterSqlSupport {
      * @param sql        sql template
      * @param binding    bind parameter values to the PreparedStatement (optional)
      * @return number of rows updated
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public int update(Connection connection, String sql, StatementBinding binding) throws SQLException, BetterSqlException {
+    public int update(Connection connection, String sql, StatementBinding binding) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(sql);
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql, false, !options.arraySupport())) {
@@ -147,8 +135,6 @@ public final class BetterSqlSupport {
                 binding.bind(ps);
             }
             return ps.executeUpdate();
-        } catch (SQLException e) {
-            throw e;
         } catch (Exception e) {
             throw new BetterSqlException(e);
         }
@@ -157,7 +143,7 @@ public final class BetterSqlSupport {
     /**
      * primarily for single INSERT. takes a ResultMapping to handle compound keys.
      * if you need a bulk insert (w or w/o returned keys), try using BetterPreparedStatement directly
-     *
+     * <p>
      * generated keys will transparently have their column names extracted from metadata for convenience.
      *
      * @param connection          db connection. close it yourself
@@ -166,10 +152,8 @@ public final class BetterSqlSupport {
      * @param generatedKeyMapping map ResultSet for generated key
      * @param <K>                 key type
      * @return key mapping result or null
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public <K> K insert(Connection connection, String sql, StatementBinding binding, ResultMapping<K> generatedKeyMapping) throws SQLException, BetterSqlException {
+    public <K> K insert(Connection connection, String sql, StatementBinding binding, ResultMapping<K> generatedKeyMapping) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(sql);
         try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql, true, !options.arraySupport())) {
@@ -182,8 +166,6 @@ public final class BetterSqlSupport {
                     return generatedKeyMapping.map(rs);
                 }
             }
-        } catch (SQLException e) {
-            throw e;
         } catch (Exception e) {
             throw new BetterSqlException(e);
         }
@@ -199,10 +181,8 @@ public final class BetterSqlSupport {
      * @param binding    bind parameter values to the PreparedStatement (optional)
      * @param <K>        key type
      * @return key or null
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public <K> K insert(Connection connection, String sql, StatementBinding binding) throws SQLException, BetterSqlException {
+    public <K> K insert(Connection connection, String sql, StatementBinding binding) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(sql);
         K key = null;
@@ -217,8 +197,6 @@ public final class BetterSqlSupport {
                     key = (K) rs.getObject(1);
                 }
             }
-        } catch (SQLException e) {
-            throw e;
         } catch (Exception e) {
             throw new BetterSqlException(e);
         }
@@ -238,11 +216,11 @@ public final class BetterSqlSupport {
             this.sql = sql;
         }
 
-        public int executeUpdate(Connection connection) throws SQLException, BetterSqlException {
+        public int executeUpdate(Connection connection) {
             return update(connection, sql, null);
         }
 
-        public <K> K executeInsert(Connection connection) throws SQLException, BetterSqlException {
+        public <K> K executeInsert(Connection connection) {
             return insert(connection, sql, null);
         }
 
@@ -268,11 +246,11 @@ public final class BetterSqlSupport {
             this.statementBinding = statementBinding;
         }
 
-        public int executeUpdate(Connection connection) throws SQLException, BetterSqlException {
+        public int executeUpdate(Connection connection) {
             return update(connection, sql, statementBinding);
         }
 
-        public <K> K executeInsert(Connection connection) throws SQLException, BetterSqlException {
+        public <K> K executeInsert(Connection connection) {
             return insert(connection, sql, statementBinding);
         }
 
@@ -294,7 +272,7 @@ public final class BetterSqlSupport {
             this.keyMapping = keyMapping;
         }
 
-        public K executeInsert(Connection connection) throws SQLException, BetterSqlException {
+        public K executeInsert(Connection connection) {
             return insert(connection, sql, null, keyMapping);
         }
 
@@ -318,7 +296,7 @@ public final class BetterSqlSupport {
             this.keyMapping = keyMapping;
         }
 
-        public K executeInsert(Connection connection) throws SQLException, BetterSqlException {
+        public K executeInsert(Connection connection) {
             return insert(connection, sql, statementBinding, keyMapping);
         }
 
@@ -336,11 +314,11 @@ public final class BetterSqlSupport {
             this.resultMapping = resultMapping;
         }
 
-        public T executeQuery(Connection connection) throws SQLException, BetterSqlException {
+        public T executeQuery(Connection connection) {
             return query(connection, sql, null, resultMapping);
         }
 
-        public List<T> executeQueryList(Connection connection) throws SQLException, BetterSqlException {
+        public List<T> executeQueryList(Connection connection) {
             return queryList(connection, sql, null, resultMapping);
         }
 
@@ -364,11 +342,11 @@ public final class BetterSqlSupport {
             this.resultMapping = resultMapping;
         }
 
-        public T executeQuery(Connection connection) throws SQLException, BetterSqlException {
+        public T executeQuery(Connection connection) {
             return query(connection, sql, statementBinding, resultMapping);
         }
 
-        public List<T> executeQueryList(Connection connection) throws SQLException, BetterSqlException {
+        public List<T> executeQueryList(Connection connection) {
             return queryList(connection, sql, statementBinding, resultMapping);
         }
 
@@ -388,7 +366,7 @@ public final class BetterSqlSupport {
             this.keyMapping = keyMapping;
         }
 
-        public Map<K, T> executeQueryMapped(Connection connection) throws SQLException, BetterSqlException {
+        public Map<K, T> executeQueryMapped(Connection connection) {
             return queryMap(connection, sql, null, resultMapping, keyMapping);
         }
 
@@ -410,7 +388,7 @@ public final class BetterSqlSupport {
             this.keyMapping = keyMapping;
         }
 
-        public Map<K, T> executeQueryMapped(Connection connection) throws SQLException, BetterSqlException {
+        public Map<K, T> executeQueryMapped(Connection connection) {
             return queryMap(connection, sql, statementBinding, resultMapping, keyMapping);
         }
     }

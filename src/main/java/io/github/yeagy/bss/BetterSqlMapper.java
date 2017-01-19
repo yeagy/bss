@@ -41,15 +41,13 @@ public final class BetterSqlMapper {
      * @param clazz      entity type class
      * @param <T>        entity type
      * @return entity or null
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public <T> T find(Connection connection, Object key, Class<T> clazz) throws SQLException, BetterSqlException {
+    public <T> T find(Connection connection, Object key, Class<T> clazz) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(key);
         Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
-        if(tableData.hasCompositeKey()){
+        if (tableData.hasCompositeKey()) {
             throw new BetterSqlException("method not supported for entities with composite keys. try the select builder");
         }
         final String select = generator.generateSelectSqlTemplate(tableData);
@@ -65,15 +63,13 @@ public final class BetterSqlMapper {
      * @param clazz      entity type class
      * @param <T>        entity type
      * @return entities or empty set
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public <T> List<T> find(Connection connection, Collection<?> keys, Class<T> clazz) throws SQLException, BetterSqlException {
+    public <T> List<T> find(Connection connection, Collection<?> keys, Class<T> clazz) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(keys);
         Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
-        if(tableData.hasCompositeKey()){
+        if (tableData.hasCompositeKey()) {
             throw new BetterSqlException("method not supported for entities with composite keys. try the select builder");
         }
         final String select = generator.generateBulkSelectSqlTemplate(tableData);
@@ -95,10 +91,8 @@ public final class BetterSqlMapper {
      * @param entity     entity to insert
      * @param <T>        entity type
      * @return entity with generated primary key. null if there was no generated key returned. the entity itself if the primary key was non-null.
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public <T> T insert(Connection connection, T entity) throws SQLException, BetterSqlException {
+    public <T> T insert(Connection connection, T entity) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(entity);
         T result = null;
@@ -116,33 +110,27 @@ public final class BetterSqlMapper {
                 }
             });
             if (primaryKeyValues.isEmpty()) {
+                final List<FieldValue> generatedKeys;
                 if (!tableData.hasCompositeKey()) {
                     final Object generatedKey = builder.executeInsert(connection);
-                    if (generatedKey != null) {
-                        //noinspection unchecked
-                        result = constructNewInstance((Class<T>) entity.getClass());
-                        tableData.getPrimaryKeys().get(0).set(result, generatedKey);
-                        for (Field field : tableData.getColumns()) {
-                            copyField(field, result, entity);
-                        }
-                    }
-                } else {//compound primary key needs to use metadata translation
-                    final List<FieldValue> generatedKeys = builder.keyMapping(rs -> {
+                    generatedKeys = Collections.singletonList(new FieldValue(tableData.getPrimaryKey(), generatedKey));
+                } else {
+                    generatedKeys = builder.keyMapping(rs -> {
                         final List<FieldValue> values = new ArrayList<>();
                         for (Field field : tableData.getPrimaryKeys()) {
                             values.add(new FieldValue(field, rs.getObject(TableData.getColumnName(field))));
                         }
                         return values;
                     }).executeInsert(connection);
-                    if (!generatedKeys.isEmpty()) {
-                        //noinspection unchecked
-                        result = constructNewInstance((Class<T>) entity.getClass());
-                        for (FieldValue key : generatedKeys) {
-                            key.field.set(result, key.value);
-                        }
-                        for (Field field : tableData.getColumns()) {
-                            copyField(field, result, entity);
-                        }
+                }
+                if (!generatedKeys.isEmpty()) {
+                    //noinspection unchecked
+                    result = constructNewInstance((Class<T>) entity.getClass());
+                    for (FieldValue key : generatedKeys) {
+                        key.field.set(result, key.value);
+                    }
+                    for (Field field : tableData.getColumns()) {
+                        copyField(field, result, entity);
                     }
                 }
             } else {
@@ -161,10 +149,8 @@ public final class BetterSqlMapper {
      *
      * @param connection db connection. close it yourself
      * @param entity     entity to update
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public void update(Connection connection, Object entity) throws SQLException, BetterSqlException {
+    public void update(Connection connection, Object entity) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(entity);
         final TableData tableData = TableData.from(entity.getClass());
@@ -193,10 +179,8 @@ public final class BetterSqlMapper {
      *
      * @param connection db connection. close it yourself
      * @param entity     entity to delete
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public void delete(Connection connection, Object entity) throws SQLException, BetterSqlException {
+    public void delete(Connection connection, Object entity) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(entity);
         final TableData tableData = TableData.from(entity.getClass());
@@ -224,15 +208,13 @@ public final class BetterSqlMapper {
      * @param key        primary key to filter on
      * @param clazz      entity type class
      * @return number of rows deleted
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public int delete(Connection connection, Object key, Class<?> clazz) throws SQLException, BetterSqlException {
+    public int delete(Connection connection, Object key, Class<?> clazz) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(key);
         Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
-        if(tableData.hasCompositeKey()){
+        if (tableData.hasCompositeKey()) {
             throw new BetterSqlException("method not supported for entities with composite keys");
         }
         final String delete = generator.generateDeleteSqlTemplate(tableData);
@@ -246,15 +228,13 @@ public final class BetterSqlMapper {
      * @param keys       primary keys to filter on
      * @param clazz      entity type class
      * @return number of rows updated
-     * @throws SQLException from JDBC
-     * @throws BetterSqlException check the message
      */
-    public int delete(Connection connection, Collection<?> keys, Class<?> clazz) throws SQLException, BetterSqlException {
+    public int delete(Connection connection, Collection<?> keys, Class<?> clazz) {
         Objects.requireNonNull(connection);
         Objects.requireNonNull(keys);
         Objects.requireNonNull(clazz);
         final TableData tableData = TableData.from(clazz);
-        if(tableData.hasCompositeKey()){
+        if (tableData.hasCompositeKey()) {
             throw new BetterSqlException("method not supported for entities with composite keys");
         }
         final String delete = generator.generateBulkDeleteSqlTemplate(tableData);
@@ -302,10 +282,8 @@ public final class BetterSqlMapper {
          *
          * @param connection db connection. close it yourself
          * @return entity or null
-         * @throws SQLException from JDBC
-         * @throws BetterSqlException check the message
          */
-        public T one(Connection connection) throws SQLException, BetterSqlException {
+        public T one(Connection connection) {
             Objects.requireNonNull(connection);
             final TableData tableData = TableData.from(clazz);
             return support.builder(sql)
@@ -319,10 +297,8 @@ public final class BetterSqlMapper {
          *
          * @param connection db connection. close it yourself
          * @return entities or empty set
-         * @throws SQLException from JDBC
-         * @throws BetterSqlException check the message
          */
-        public List<T> list(Connection connection) throws SQLException, BetterSqlException {
+        public List<T> list(Connection connection) {
             Objects.requireNonNull(connection);
             final TableData tableData = TableData.from(clazz);
             return support.builder(sql)
@@ -338,10 +314,8 @@ public final class BetterSqlMapper {
          * @param keyMapping map the ResultSet to a key
          * @param <K>        key type
          * @return entities or empty map
-         * @throws SQLException from JDBC
-         * @throws BetterSqlException check the message
          */
-        public <K> Map<K, T> map(Connection connection, ResultMapping<K> keyMapping) throws SQLException, BetterSqlException {
+        public <K> Map<K, T> map(Connection connection, ResultMapping<K> keyMapping) {
             Objects.requireNonNull(connection);
             final TableData tableData = TableData.from(clazz);
             return support.builder(sql)
@@ -353,10 +327,10 @@ public final class BetterSqlMapper {
 
     }
 
-    private static List<FieldValue> getPrimaryKeyValues(Object entity, TableData tableData) throws BetterSqlException {
+    private static List<FieldValue> getPrimaryKeyValues(Object entity, TableData tableData) {
         try {
             if (!tableData.hasCompositeKey()) {
-                final Field field = tableData.getPrimaryKeys().get(0);
+                final Field field = tableData.getPrimaryKey();
                 final Object value = field.get(entity);
                 return value != null ? Collections.singletonList(new FieldValue(field, value)) : Collections.EMPTY_LIST;
             } else {
@@ -414,7 +388,7 @@ public final class BetterSqlMapper {
         }
     }
 
-    private static <T> T createEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException, BetterSqlException {
+    private static <T> T createEntity(BetterResultSet rs, TableData tableData, Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, SQLException {
         final T result = constructNewInstance(clazz);
         for (Field field : tableData.getPrimaryKeys()) {
             setField(rs, field, result, null);
@@ -425,7 +399,7 @@ public final class BetterSqlMapper {
         return result;
     }
 
-    private static <T> T constructNewInstance(Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, BetterSqlException {
+    private static <T> T constructNewInstance(Class<T> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         final Constructor<T> constructor = clazz.getDeclaredConstructor();
         if (constructor == null) {
             throw new BetterSqlException("zero argument constructor not found on class " + clazz.getSimpleName());

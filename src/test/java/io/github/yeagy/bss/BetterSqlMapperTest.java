@@ -60,7 +60,7 @@ public class BetterSqlMapperTest {
     }
 
     @Test
-    public void testFull() throws Exception {
+    public void testFull() {
         TestBean bean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()), 0.0);
         TestBean result = BSM.insert(connection, bean);
         assertNotNull(result.getTestKey());
@@ -80,7 +80,7 @@ public class BetterSqlMapperTest {
     }
 
     @Test
-    public void testInsert() throws Exception {
+    public void testInsert() {
         Timestamp now = Timestamp.from(Instant.now());
         {
             TestBean testBean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", now, 0.0);
@@ -109,7 +109,7 @@ public class BetterSqlMapperTest {
     }
 
     @Test
-    public void testUpdate() throws Exception {
+    public void testUpdate() {
         Timestamp now = Timestamp.from(Instant.now().plus(1, ChronoUnit.DAYS));
         {
             final long key = 4;
@@ -158,7 +158,7 @@ public class BetterSqlMapperTest {
     }
 
     @Test
-    public void testSelect() throws Exception {
+    public void testSelect() {
         final long key = 3;
         {
             final TestBean result = BSM.find(connection, key, TestBean.class);
@@ -173,7 +173,7 @@ public class BetterSqlMapperTest {
     }
 
     @Test
-    public void testDelete() throws Exception {
+    public void testDelete() {
         {
             final long key = 1;
             final TestBean preSelect = BSM.find(connection, key, TestBean.class);
@@ -199,7 +199,7 @@ public class BetterSqlMapperTest {
     }
 
     @Test
-    public void testBulkSelectAndDelete() throws Exception {
+    public void testBulkSelectAndDelete() {
         Timestamp now = Timestamp.from(Instant.now());
         final List<TestBean> beans = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
@@ -217,7 +217,7 @@ public class BetterSqlMapperTest {
     }
 
     @Test
-    public void testSelectBuilder() throws Exception {
+    public void testSelectBuilder() {
         String selectOne = "SELECT * FROM test_bean WHERE test_key = :test_key";
         TestBean bean = BSM.select(selectOne, TestBean.class)
                 .bind(ps -> ps.setLong("test_key", 1))

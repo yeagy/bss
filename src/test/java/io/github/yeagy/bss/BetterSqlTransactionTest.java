@@ -40,7 +40,7 @@ public class BetterSqlTransactionTest {
     }
 
     @Test
-    public void testTransaction() throws Exception {
+    public void testTransaction() {
         BetterSqlTransaction.with(connection -> {
             TestBean bean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()), 0.0);
             TestBean result = BDSM.insert(connection, bean);
@@ -57,7 +57,7 @@ public class BetterSqlTransactionTest {
     }
 
     @Test
-    public void testReturning() throws Exception {
+    public void testReturning() {
         TestBean bean = new TestBean(null, Long.MAX_VALUE, Integer.MAX_VALUE, "test string", Timestamp.from(Instant.now()), 0.0);
         final TestBean result = BetterSqlTransaction.returning(connection -> BDSM.insert(connection, bean)).execute(connectionH2);
         assertNotNull(result);

@@ -1,6 +1,6 @@
 package io.github.yeagy.bss;
 
-public final class BetterSqlException extends Exception{
+public final class BetterSqlException extends RuntimeException {
     public BetterSqlException() {
         super();
     }

@@ -85,7 +85,7 @@ public class BetterSqlSupportTest {
     }
 
     @Test
-    public void testFull() throws Exception {
+    public void testFull() {
         final Timestamp now = Timestamp.from(Instant.now());
 
         String insert = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm) VALUES (:some_long, :some_int, :some_string, :some_dtm)";
@@ -132,7 +132,7 @@ public class BetterSqlSupportTest {
     }
 
     @Test
-    public void testFullBuilder() throws Exception {
+    public void testFullBuilder() {
         final Timestamp now = Timestamp.from(Instant.now());
 
         String insert = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm) VALUES (:some_long, :some_int, :some_string, :some_dtm)";

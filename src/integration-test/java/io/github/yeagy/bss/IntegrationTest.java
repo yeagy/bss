@@ -62,21 +62,21 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDormSelectWithArrayPostgres() throws Exception {
+    public void testDormSelectWithArrayPostgres() {
         testSelectWithArray(PG_CONNECTION, PG_MAPPER, PG_BEANS);
     }
 
     @Test
-    public void testDormSelectWithArrayMysql() throws Exception {
+    public void testDormSelectWithArrayMysql() {
         testSelectWithArray(MY_CONNECTION, MY_MAPPER, MY_BEANS);
     }
 
     @Test
-    public void testCompositeKeyPostgres() throws Exception {
+    public void testCompositeKeyPostgres() {
         testCompositeKey(PG_CONNECTION, PG_MAPPER);
     }
 
-    private void testCompositeKey(Connection connection, BetterSqlMapper mapper) throws Exception {
+    private void testCompositeKey(Connection connection, BetterSqlMapper mapper) {
         long keyA = 1;
         long keyB = 100;
         mapper.insert(connection, new CompositeKeyBean(keyA, keyB, -12L, 15, "test"));
@@ -105,7 +105,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testStringArray() throws Exception {
+    public void testStringArray() {
         Set<String> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeString).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_string IN (SELECT unnest(?))";
         List<String> dbKeys = PG_SUPPORT.builder(select)
@@ -117,7 +117,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDoubleArray() throws Exception {
+    public void testDoubleArray() {
         Set<Double> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeDouble).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_double IN (SELECT unnest(?))";
         List<Double> dbKeys = PG_SUPPORT.builder(select)
@@ -129,7 +129,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testLongArray() throws Exception {
+    public void testLongArray() {
         Set<Long> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeLong).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_long IN (SELECT unnest(?))";
         List<Long> dbKeys = PG_SUPPORT.builder(select)
@@ -141,7 +141,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testBigDecimalArray() throws Exception {
+    public void testBigDecimalArray() {
         Set<BigDecimal> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeBd).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_bd IN (SELECT unnest(?))";
         List<BigDecimal> dbKeys = PG_SUPPORT.builder(select)
@@ -153,7 +153,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testIntArray() throws Exception {
+    public void testIntArray() {
         Set<Integer> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeInt).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_int IN (SELECT unnest(?))";
         List<Integer> dbKeys = PG_SUPPORT.builder(select)
@@ -165,7 +165,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testShortArray() throws Exception {
+    public void testShortArray() {
         Set<Short> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeShort).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_short IN (SELECT unnest(?))";
         List<Short> dbKeys = PG_SUPPORT.builder(select)
@@ -177,7 +177,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testFloatArray() throws Exception {
+    public void testFloatArray() {
         Set<Float> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeFloat).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_float IN (SELECT unnest(?))";
         List<Float> dbKeys = PG_SUPPORT.builder(select)
@@ -189,7 +189,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testBooleanArray() throws Exception {
+    public void testBooleanArray() {
         Set<Boolean> keys = PG_BEANS.stream().map(IntegrationTestBean::isSomeBool).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_bool IN (SELECT unnest(?))";
         List<Boolean> dbKeys = PG_SUPPORT.builder(select)
@@ -201,7 +201,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testTimeArray() throws Exception {
+    public void testTimeArray() {
         Set<Time> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeTime).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_time IN (SELECT unnest(?))";
         List<Time> dbKeys = PG_SUPPORT.builder(select)
@@ -213,7 +213,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDateArray() throws Exception {
+    public void testDateArray() {
         Set<Date> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeDate).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_date IN (SELECT unnest(?))";
         List<Date> dbKeys = PG_SUPPORT.builder(select)
@@ -225,7 +225,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testTimestampArray() throws Exception {
+    public void testTimestampArray() {
         Set<Timestamp> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeDtm).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_dtm IN (SELECT unnest(?))";
         List<Timestamp> dbKeys = PG_SUPPORT.builder(select)
@@ -236,7 +236,7 @@ public class IntegrationTest {
         assertTrue(dbKeys.containsAll(keys));
     }
 
-    private void testSelectWithArray(Connection connection, BetterSqlMapper mapper, List<IntegrationTestBean> beans) throws SQLException, BetterSqlException {
+    private void testSelectWithArray(Connection connection, BetterSqlMapper mapper, List<IntegrationTestBean> beans) {
         Set<Long> keys = beans.stream().map(IntegrationTestBean::getTestKey).collect(toSet());
         List<IntegrationTestBean> fromDB = mapper.find(connection, keys, IntegrationTestBean.class);
         Set<Long> dbKeys = fromDB.stream().map(IntegrationTestBean::getTestKey).collect(toSet());
@@ -248,7 +248,7 @@ public class IntegrationTest {
         return new HashSet<>(list);
     }
 
-    private static List<IntegrationTestBean> createTestBeans(Connection connection, BetterSqlMapper mapper) throws SQLException, BetterSqlException {
+    private static List<IntegrationTestBean> createTestBeans(Connection connection, BetterSqlMapper mapper) {
         List<IntegrationTestBean> beans = new ArrayList<>();
         LocalDateTime dateTime = LocalDateTime.now();
         beans.add(mapper.insert(connection, new IntegrationTestBean(null, 3331L, 123, (short) 91, 888.88, 12.341f, true, "one", BigDecimal.ONE,
