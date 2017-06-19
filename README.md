@@ -5,9 +5,9 @@
 # BSS - Better SQL Support
 ### Lightweight JDBC enhancement library. Joinless ORM.
 ###### Dependencies: Java 8.
-Vanilla JDBC is a utilitarian and lackluster experience, an early java API that feels dated.<br>
+Vanilla JDBC is a caveman experience, an early java API that feels dated.<br>
 Lots of common usages are easy to screw up, like null handling primitives, or properly executing a transaction and rollback.
-The index based parameter API is error prone, and support lacks for the common IN clause!<br>
+The index based parameter API is error prone, and support lacks for the common IN clause.<br>
 This library can enhance the JDBC experience to one that's bearable. Near decent even!
 
 [**BetterPreparedStatement**](https://github.com/yeagy/bss/wiki/BetterPreparedStatement)
@@ -45,6 +45,6 @@ Check out the [wiki](https://github.com/yeagy/bss/wiki) for basic usage examples
 <dependency>
   <groupId>io.github.yeagy</groupId>
   <artifactId>bss</artifactId>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
 </dependency>
 ```

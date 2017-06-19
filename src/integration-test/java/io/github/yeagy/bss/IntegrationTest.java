@@ -109,9 +109,9 @@ public class IntegrationTest {
         Set<String> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeString).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_string IN (SELECT unnest(?))";
         List<String> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getString("some_string"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getString("some_string"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -121,9 +121,9 @@ public class IntegrationTest {
         Set<Double> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeDouble).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_double IN (SELECT unnest(?))";
         List<Double> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getDouble("some_double"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getDouble("some_double"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -133,9 +133,9 @@ public class IntegrationTest {
         Set<Long> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeLong).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_long IN (SELECT unnest(?))";
         List<Long> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getLong("some_long"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getLong("some_long"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -145,9 +145,9 @@ public class IntegrationTest {
         Set<BigDecimal> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeBd).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_bd IN (SELECT unnest(?))";
         List<BigDecimal> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getBigDecimal("some_bd"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getBigDecimal("some_bd"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -157,9 +157,9 @@ public class IntegrationTest {
         Set<Integer> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeInt).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_int IN (SELECT unnest(?))";
         List<Integer> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getInt("some_int"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getInt("some_int"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -169,9 +169,9 @@ public class IntegrationTest {
         Set<Short> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeShort).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_short IN (SELECT unnest(?))";
         List<Short> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getShort("some_short"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getShort("some_short"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -181,9 +181,9 @@ public class IntegrationTest {
         Set<Float> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeFloat).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_float IN (SELECT unnest(?))";
         List<Float> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getFloat("some_float"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getFloat("some_float"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -193,9 +193,9 @@ public class IntegrationTest {
         Set<Boolean> keys = PG_BEANS.stream().map(IntegrationTestBean::isSomeBool).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_bool IN (SELECT unnest(?))";
         List<Boolean> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getBoolean("some_bool"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getBoolean("some_bool"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -205,9 +205,9 @@ public class IntegrationTest {
         Set<Time> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeTime).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_time IN (SELECT unnest(?))";
         List<Time> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getTime("some_time"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getTime("some_time"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -217,9 +217,9 @@ public class IntegrationTest {
         Set<Date> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeDate).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_date IN (SELECT unnest(?))";
         List<Date> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getDate("some_date"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getDate("some_date"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }
@@ -229,9 +229,9 @@ public class IntegrationTest {
         Set<Timestamp> keys = PG_BEANS.stream().map(IntegrationTestBean::getSomeDtm).collect(toSet());
         String select = "SELECT * FROM bss_test.integration_test WHERE some_dtm IN (SELECT unnest(?))";
         List<Timestamp> dbKeys = PG_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> rs.getTimestamp("some_dtm"))
-                .executeQueryList(PG_CONNECTION);
+                .bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> rs.getTimestamp("some_dtm"))
+                .queryList(PG_CONNECTION);
         assertThat(makeSet(dbKeys).size(), equalTo(keys.size()));
         assertTrue(dbKeys.containsAll(keys));
     }

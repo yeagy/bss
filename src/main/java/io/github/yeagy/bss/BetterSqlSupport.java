@@ -120,6 +120,40 @@ public final class BetterSqlSupport {
     }
 
     /**
+     * primarily for bulk SELECT. also useful for INSERT/UPDATE with RETURNING
+     *
+     * @param connection    db connection. close it yourself
+     * @param sql           sql template
+     * @param binding       bind parameter values to the PreparedStatement (optional)
+     * @param resultMapping map ResultSet to return entity
+     * @param keyMapping    map ResultSet to a key
+     * @param <K>           key type
+     * @param <T>           entity type
+     * @return multi-map of entities by key or empty map
+     */
+    public <K, T> Map<K, List<T>> queryMultiMap(Connection connection, String sql, StatementBinding binding, ResultMapping<T> resultMapping, ResultMapping<K> keyMapping){
+        Objects.requireNonNull(connection);
+        Objects.requireNonNull(sql);
+        Objects.requireNonNull(resultMapping);
+        Objects.requireNonNull(keyMapping);
+        final Map<K, List<T>> mmap = new HashMap<>();
+        try (final BetterPreparedStatement ps = BetterPreparedStatement.create(connection, sql, false, !options.arraySupport())) {
+            if (binding != null) {
+                binding.bind(ps);
+            }
+            try (final BetterResultSet rs = BetterResultSet.from(ps.executeQuery())) {
+                while (rs.next()) {
+                    mmap.computeIfAbsent(keyMapping.map(rs), k -> new ArrayList<>()).add(resultMapping.map(rs));
+                }
+            }
+        } catch (Exception e) {
+            throw new BetterSqlException(e);
+        }
+        return Collections.unmodifiableMap(mmap);
+
+    }
+
+    /**
      * primarily for INSERT/UPDATE/DELETE
      *
      * @param connection db connection. close it yourself
@@ -216,23 +250,23 @@ public final class BetterSqlSupport {
             this.sql = sql;
         }
 
-        public int executeUpdate(Connection connection) {
-            return update(connection, sql, null);
+        public int update(Connection connection) {
+            return BetterSqlSupport.this.update(connection, sql, null);
         }
 
-        public <K> K executeInsert(Connection connection) {
-            return insert(connection, sql, null);
+        public <K> K insert(Connection connection) {
+            return BetterSqlSupport.this.insert(connection, sql, null);
         }
 
-        public BoundBuilder statementBinding(StatementBinding statementBinding) {
+        public BoundBuilder bind(StatementBinding statementBinding) {
             return new BoundBuilder(sql, statementBinding);
         }
 
-        public <T> ResultBuilder<T> resultMapping(ResultMapping<T> resultMapping) {
+        public <T> ResultBuilder<T> mapResult(ResultMapping<T> resultMapping) {
             return new ResultBuilder<>(sql, resultMapping);
         }
 
-        public <K> KeyedBuilder<K> keyMapping(ResultMapping<K> keyMapping) {
+        public <K> KeyedBuilder<K> mapKey(ResultMapping<K> keyMapping) {
             return new KeyedBuilder<>(sql, keyMapping);
         }
     }
@@ -246,19 +280,19 @@ public final class BetterSqlSupport {
             this.statementBinding = statementBinding;
         }
 
-        public int executeUpdate(Connection connection) {
-            return update(connection, sql, statementBinding);
+        public int update(Connection connection) {
+            return BetterSqlSupport.this.update(connection, sql, statementBinding);
         }
 
-        public <K> K executeInsert(Connection connection) {
-            return insert(connection, sql, statementBinding);
+        public <K> K insert(Connection connection) {
+            return BetterSqlSupport.this.insert(connection, sql, statementBinding);
         }
 
-        public <T> BoundResultBuilder<T> resultMapping(ResultMapping<T> resultMapping) {
+        public <T> BoundResultBuilder<T> mapResult(ResultMapping<T> resultMapping) {
             return new BoundResultBuilder<>(sql, statementBinding, resultMapping);
         }
 
-        public <K> BoundKeyedBuilder<K> keyMapping(ResultMapping<K> keyMapping) {
+        public <K> BoundKeyedBuilder<K> mapKey(ResultMapping<K> keyMapping) {
             return new BoundKeyedBuilder<>(sql, statementBinding, keyMapping);
         }
     }
@@ -272,15 +306,15 @@ public final class BetterSqlSupport {
             this.keyMapping = keyMapping;
         }
 
-        public K executeInsert(Connection connection) {
-            return insert(connection, sql, null, keyMapping);
+        public K insert(Connection connection) {
+            return BetterSqlSupport.this.insert(connection, sql, null, keyMapping);
         }
 
-        public BoundKeyedBuilder<K> statementBinding(StatementBinding statementBinding) {
+        public BoundKeyedBuilder<K> bind(StatementBinding statementBinding) {
             return new BoundKeyedBuilder<>(sql, statementBinding, keyMapping);
         }
 
-        public <T> KeyedResultBuilder<K, T> resultMapping(ResultMapping<T> resultMapping) {
+        public <T> KeyedResultBuilder<K, T> mapResult(ResultMapping<T> resultMapping) {
             return new KeyedResultBuilder<>(sql, resultMapping, keyMapping);
         }
     }
@@ -296,11 +330,11 @@ public final class BetterSqlSupport {
             this.keyMapping = keyMapping;
         }
 
-        public K executeInsert(Connection connection) {
-            return insert(connection, sql, statementBinding, keyMapping);
+        public K insert(Connection connection) {
+            return BetterSqlSupport.this.insert(connection, sql, statementBinding, keyMapping);
         }
 
-        public <T> BoundKeyedResultBuilder<K, T> resultMapping(ResultMapping<T> resultMapping) {
+        public <T> BoundKeyedResultBuilder<K, T> mapResult(ResultMapping<T> resultMapping) {
             return new BoundKeyedResultBuilder<>(sql, statementBinding, resultMapping, keyMapping);
         }
     }
@@ -314,19 +348,19 @@ public final class BetterSqlSupport {
             this.resultMapping = resultMapping;
         }
 
-        public T executeQuery(Connection connection) {
-            return query(connection, sql, null, resultMapping);
+        public T query(Connection connection) {
+            return BetterSqlSupport.this.query(connection, sql, null, resultMapping);
         }
 
-        public List<T> executeQueryList(Connection connection) {
-            return queryList(connection, sql, null, resultMapping);
+        public List<T> queryList(Connection connection) {
+            return BetterSqlSupport.this.queryList(connection, sql, null, resultMapping);
         }
 
-        public BoundResultBuilder<T> statementBinding(StatementBinding statementBinding) {
+        public BoundResultBuilder<T> bind(StatementBinding statementBinding) {
             return new BoundResultBuilder<>(sql, statementBinding, resultMapping);
         }
 
-        public <K> KeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping) {
+        public <K> KeyedResultBuilder<K, T> mapKey(ResultMapping<K> keyMapping) {
             return new KeyedResultBuilder<>(sql, resultMapping, keyMapping);
         }
     }
@@ -342,15 +376,15 @@ public final class BetterSqlSupport {
             this.resultMapping = resultMapping;
         }
 
-        public T executeQuery(Connection connection) {
-            return query(connection, sql, statementBinding, resultMapping);
+        public T query(Connection connection) {
+            return BetterSqlSupport.this.query(connection, sql, statementBinding, resultMapping);
         }
 
-        public List<T> executeQueryList(Connection connection) {
-            return queryList(connection, sql, statementBinding, resultMapping);
+        public List<T> queryList(Connection connection) {
+            return BetterSqlSupport.this.queryList(connection, sql, statementBinding, resultMapping);
         }
 
-        public <K> BoundKeyedResultBuilder<K, T> keyMapping(ResultMapping<K> keyMapping) {
+        public <K> BoundKeyedResultBuilder<K, T> mapKey(ResultMapping<K> keyMapping) {
             return new BoundKeyedResultBuilder<>(sql, statementBinding, resultMapping, keyMapping);
         }
     }
@@ -366,11 +400,15 @@ public final class BetterSqlSupport {
             this.keyMapping = keyMapping;
         }
 
-        public Map<K, T> executeQueryMapped(Connection connection) {
-            return queryMap(connection, sql, null, resultMapping, keyMapping);
+        public Map<K, T> queryMap(Connection connection) {
+            return BetterSqlSupport.this.queryMap(connection, sql, null, resultMapping, keyMapping);
         }
 
-        public BoundKeyedResultBuilder<K, T> statementBinding(StatementBinding statementBinding) {
+        public Map<K, List<T>> queryMultiMap(Connection connection) {
+            return BetterSqlSupport.this.queryMultiMap(connection, sql, null, resultMapping, keyMapping);
+        }
+
+        public BoundKeyedResultBuilder<K, T> bind(StatementBinding statementBinding) {
             return new BoundKeyedResultBuilder<>(sql, statementBinding, resultMapping, keyMapping);
         }
     }
@@ -388,8 +426,12 @@ public final class BetterSqlSupport {
             this.keyMapping = keyMapping;
         }
 
-        public Map<K, T> executeQueryMapped(Connection connection) {
-            return queryMap(connection, sql, statementBinding, resultMapping, keyMapping);
+        public Map<K, T> queryMap(Connection connection) {
+            return BetterSqlSupport.this.queryMap(connection, sql, statementBinding, resultMapping, keyMapping);
+        }
+
+        public Map<K, List<T>> queryMultiMap(Connection connection) {
+            return BetterSqlSupport.this.queryMultiMap(connection, sql, statementBinding, resultMapping, keyMapping);
         }
     }
 }

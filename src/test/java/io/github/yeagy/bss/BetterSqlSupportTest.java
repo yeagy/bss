@@ -78,10 +78,23 @@ public class BetterSqlSupportTest {
         String select = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key > :test_key";
         final Map<Long, TestBean> testBeans = SQL_SUPPORT.queryMap(connection, select, ps -> ps.setLong("test_key", 1),
                 rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0),
-                rsk -> rsk.getLong("test_key"));
+                rs -> rs.getLong("test_key"));
         assertNotNull(testBeans);
-        assertThat(testBeans.entrySet(), not(empty()));
+        assertThat(testBeans.keySet().size(), equalTo(4));
         testBeans.keySet().forEach(key -> assertThat(key, greaterThan(1L)));
+    }
+
+    @Test
+    public void testSelectMultiMap() throws Exception {
+        truncateAndInsert();
+        String select = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key > :test_key";
+        final Map<Integer, List<TestBean>> testBeans = SQL_SUPPORT.queryMultiMap(connection, select, ps -> ps.setLong("test_key", 1),
+                rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0),
+                rs -> rs.getInt("some_int"));
+        assertNotNull(testBeans);
+        assertThat(testBeans.keySet().size(), equalTo(3));
+        testBeans.keySet().forEach(key -> assertThat(key, greaterThan(1)));
+        assertThat(testBeans.get(124).size(), equalTo(2));
     }
 
     @Test
@@ -137,21 +150,21 @@ public class BetterSqlSupportTest {
 
         String insert = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm) VALUES (:some_long, :some_int, :some_string, :some_dtm)";
         final Long key = SQL_SUPPORT.builder(insert)
-                .statementBinding(ps -> {
+                .bind(ps -> {
                     ps.setLong("some_long", Long.MAX_VALUE);
                     ps.setInt("some_int", Integer.MAX_VALUE);
                     ps.setString("some_string", "test string");
                     ps.setTimestamp("some_dtm", now);
                 })
-                .executeInsert(connection);
+                .insert(connection);
         assertNotNull(key);
         assertThat(key, not(equalTo(0)));
 
         String select = "SELECT * FROM test_bean WHERE test_key = :test_key";
         final TestBean bean = SQL_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setLong("test_key", key))
-                .resultMapping(rs  -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0))
-                .executeQuery(connection);
+                .bind(ps -> ps.setLong("test_key", key))
+                .mapResult(rs  -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0))
+                .query(connection);
         assertNotNull(bean);
         assertThat(bean.getSomeLong(), equalTo(Long.MAX_VALUE));
         assertThat(bean.getSomeInt(), equalTo(Integer.MAX_VALUE));
@@ -160,33 +173,33 @@ public class BetterSqlSupportTest {
 
         String update = "UPDATE test_bean SET some_long = :some_long, some_int = :some_int, some_string = :some_string, some_dtm = :some_dtm WHERE test_key = :test_key";
         final int rowsUpdated = SQL_SUPPORT.builder(update)
-                .statementBinding(ps -> {
+                .bind(ps -> {
                     ps.setLong("some_long", bean.getSomeLong());
                     ps.setInt("some_int", bean.getSomeInt());
                     ps.setString("some_string", "changed string");
                     ps.setTimestamp("some_dtm", bean.getSomeDtm());
                     ps.setLong("test_key", key);
                 })
-                .executeUpdate(connection);
+                .update(connection);
         assertThat(rowsUpdated, equalTo(1));
 
         final TestBean updateBean = SQL_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setLong("test_key", key))
-                .resultMapping(rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0))
-                .executeQuery(connection);
+                .bind(ps -> ps.setLong("test_key", key))
+                .mapResult(rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0))
+                .query(connection);
         assertNotNull(updateBean);
         assertThat(updateBean.getSomeString(), equalTo("changed string"));
 
         String delete = "DELETE FROM test_bean WHERE test_key = :test_key";
         final int rowsDeleted = SQL_SUPPORT.builder(delete)
-                .statementBinding(ps -> ps.setLong("test_key", key))
-                .executeUpdate(connection);
+                .bind(ps -> ps.setLong("test_key", key))
+                .update(connection);
         assertThat(rowsDeleted, equalTo(1));
 
         final TestBean deleteBean = SQL_SUPPORT.builder(select)
-                .statementBinding(ps -> ps.setLong("test_key", key))
-                .resultMapping(rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0))
-                .executeQuery(connection);
+                .bind(ps -> ps.setLong("test_key", key))
+                .mapResult(rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0))
+                .query(connection);
         assertNull(deleteBean);
     }
 }

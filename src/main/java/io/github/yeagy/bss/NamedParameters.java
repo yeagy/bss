@@ -66,7 +66,7 @@ final class NamedParameters {
                         final String name = sql.substring(i + 1, j);
                         c = '?';
                         i += name.length();
-                        multimapPut(indices, name, idx++);
+                        indices.computeIfAbsent(name, k -> new ArrayList<>()).add(idx++);
                     }
                 }
                 processedSql.append(c);
@@ -76,14 +76,5 @@ final class NamedParameters {
             }
         }
         return null;
-    }
-
-    private static void multimapPut(Map<String, List<Integer>> map, String s, Integer i) {
-        List<Integer> list = map.get(s);
-        if (list == null) {
-            list = new ArrayList<>();
-            map.put(s, list);
-        }
-        list.add(i);
     }
 }

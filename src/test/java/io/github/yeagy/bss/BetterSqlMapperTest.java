@@ -240,6 +240,13 @@ public class BetterSqlMapperTest {
         assertThat(beanMap.entrySet(), not(empty()));
         beanMap.keySet().forEach(key -> assertThat(key, greaterThan(2L)));
 
+        Map<Long, List<TestBean>> beanMultiMap = BSM.select(selectMany, TestBean.class)
+                .bind(ps -> ps.setLong("test_key", 1))
+                .multiMap(connection, rs -> rs.getLong("some_int"));
+        assertNotNull(beanMap);
+        assertThat(beanMap.entrySet(), not(empty()));
+        assertThat(1, lessThan(beanMultiMap.get(124L).size()));
+
         String selectAll = "SELECT * FROM test_bean";
         List<TestBean> all = BSM.select(selectAll, TestBean.class).list(connection);
         assertNotNull(all);

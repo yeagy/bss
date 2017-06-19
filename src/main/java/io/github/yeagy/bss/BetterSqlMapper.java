@@ -51,8 +51,8 @@ public final class BetterSqlMapper {
             throw new BetterSqlException("method not supported for entities with composite keys. try the select builder");
         }
         final String select = generator.generateSelectSqlTemplate(tableData);
-        return support.builder(select).statementBinding(ps -> setParameter(ps, key, 1))
-                .resultMapping(rs -> createEntity(rs, tableData, clazz)).executeQuery(connection);
+        return support.builder(select).bind(ps -> setParameter(ps, key, 1))
+                .mapResult(rs -> createEntity(rs, tableData, clazz)).query(connection);
     }
 
     /**
@@ -73,8 +73,8 @@ public final class BetterSqlMapper {
             throw new BetterSqlException("method not supported for entities with composite keys. try the select builder");
         }
         final String select = generator.generateBulkSelectSqlTemplate(tableData);
-        return support.builder(select).statementBinding(ps -> ps.setArray(1, keys))
-                .resultMapping(rs -> createEntity(rs, tableData, clazz)).executeQueryList(connection);
+        return support.builder(select).bind(ps -> ps.setArray(1, keys))
+                .mapResult(rs -> createEntity(rs, tableData, clazz)).queryList(connection);
     }
 
     /**
@@ -100,7 +100,7 @@ public final class BetterSqlMapper {
         final List<FieldValue> primaryKeyValues = getPrimaryKeyValues(entity, tableData);
         final String insert = generator.generateInsertSqlTemplate(tableData, !primaryKeyValues.isEmpty());
         try {
-            final BetterSqlSupport.BoundBuilder builder = support.builder(insert).statementBinding(ps -> {
+            final BetterSqlSupport.BoundBuilder builder = support.builder(insert).bind(ps -> {
                 int idx = 0;
                 for (FieldValue primaryKeyValue : primaryKeyValues) {
                     setParameter(ps, primaryKeyValue.value, ++idx);
@@ -112,16 +112,16 @@ public final class BetterSqlMapper {
             if (primaryKeyValues.isEmpty()) {
                 final List<FieldValue> generatedKeys;
                 if (!tableData.hasCompositeKey()) {
-                    final Object generatedKey = builder.executeInsert(connection);
+                    final Object generatedKey = builder.insert(connection);
                     generatedKeys = Collections.singletonList(new FieldValue(tableData.getPrimaryKey(), generatedKey));
                 } else {
-                    generatedKeys = builder.keyMapping(rs -> {
+                    generatedKeys = builder.mapKey(rs -> {
                         final List<FieldValue> values = new ArrayList<>();
                         for (Field field : tableData.getPrimaryKeys()) {
                             values.add(new FieldValue(field, rs.getObject(TableData.getColumnName(field))));
                         }
                         return values;
-                    }).executeInsert(connection);
+                    }).insert(connection);
                 }
                 if (!generatedKeys.isEmpty()) {
                     //noinspection unchecked
@@ -134,7 +134,7 @@ public final class BetterSqlMapper {
                     }
                 }
             } else {
-                builder.executeUpdate(connection);//"update" because no need for generated keys
+                builder.update(connection);//"update" because no need for generated keys
                 result = entity;
             }
 
@@ -284,12 +284,7 @@ public final class BetterSqlMapper {
          * @return entity or null
          */
         public T one(Connection connection) {
-            Objects.requireNonNull(connection);
-            final TableData tableData = TableData.from(clazz);
-            return support.builder(sql)
-                    .statementBinding(statementBinding)
-                    .resultMapping(rs -> createEntity(rs, tableData, clazz))
-                    .executeQuery(connection);
+            return prepareBuilder(connection).query(connection);
         }
 
         /**
@@ -299,12 +294,7 @@ public final class BetterSqlMapper {
          * @return entities or empty set
          */
         public List<T> list(Connection connection) {
-            Objects.requireNonNull(connection);
-            final TableData tableData = TableData.from(clazz);
-            return support.builder(sql)
-                    .statementBinding(statementBinding)
-                    .resultMapping(rs -> createEntity(rs, tableData, clazz))
-                    .executeQueryList(connection);
+            return prepareBuilder(connection).queryList(connection);
         }
 
         /**
@@ -316,15 +306,28 @@ public final class BetterSqlMapper {
          * @return entities or empty map
          */
         public <K> Map<K, T> map(Connection connection, ResultMapping<K> keyMapping) {
+            return prepareBuilder(connection).mapKey(keyMapping).queryMap(connection);
+        }
+
+        /**
+         * Return a multi map of results.
+         *
+         * @param connection db connection. close it yourself
+         * @param keyMapping map the ResultSet to a key
+         * @param <K>        key type
+         * @return entities or empty map
+         */
+        public <K> Map<K, List<T>> multiMap(Connection connection, ResultMapping<K> keyMapping) {
+            return prepareBuilder(connection).mapKey(keyMapping).queryMultiMap(connection);
+        }
+
+        private BetterSqlSupport.BoundResultBuilder<T> prepareBuilder(Connection connection) {
             Objects.requireNonNull(connection);
             final TableData tableData = TableData.from(clazz);
             return support.builder(sql)
-                    .statementBinding(statementBinding)
-                    .resultMapping(rs -> createEntity(rs, tableData, clazz))
-                    .keyMapping(keyMapping)
-                    .executeQueryMapped(connection);
+                    .bind(statementBinding)
+                    .mapResult(rs -> createEntity(rs, tableData, clazz));
         }
-
     }
 
     private static List<FieldValue> getPrimaryKeyValues(Object entity, TableData tableData) {

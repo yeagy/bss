@@ -14,7 +14,7 @@ apply plugin: 'com.bmuschko.nexus'
 apply plugin: 'io.codearte.nexus-staging'
 
 group = 'io.github.yeagy'
-version = '0.4.0'
+version = '0.5.0'
 
 sourceCompatibility = '1.8'
 
@@ -49,7 +49,7 @@ dependencies {
 }
 
 task integrationTest(type: Test) {
-    testClassesDir = sourceSets.integrationTest.output.classesDir
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
     outputs.upToDateWhen { false }
 }
