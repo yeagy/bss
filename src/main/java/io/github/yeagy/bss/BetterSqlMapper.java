@@ -367,6 +367,8 @@ public final class BetterSqlMapper {
         final TypeMappers.ObjectParamSetter setter = TypeMappers.getObjectParamSetter(value.getClass());
         if (setter != null) {
             setter.set(ps, value, idx);
+        } else if (value.getClass().isEnum()) {
+            ps.setString(idx, value.toString());
         } else {
             ps.setObject(idx, value);
         }
@@ -376,6 +378,8 @@ public final class BetterSqlMapper {
         final TypeMappers.FieldParamSetter setter = TypeMappers.getFieldParamSetter(field.getType());
         if (setter != null) {
             setter.set(ps, field, target, idx);
+        } else if (field.getType().isEnum()) {
+            ps.setString(idx, field.get(target).toString());
         } else {
             ps.setObject(idx, field.get(target));
         }
@@ -385,6 +389,10 @@ public final class BetterSqlMapper {
         final TypeMappers.FieldResultWriter writer = TypeMappers.getFieldResultWriter(field.getType());
         if (writer != null) {
             writer.write(rs, field, target, idx);
+        } else if (field.getType().isEnum()) {
+            String s = idx == null ? rs.getString(TableData.getColumnName(field)) : rs.getString(idx);
+            //noinspection unchecked
+            field.set(target, Enum.valueOf((Class<Enum>) field.getType(), s));
         } else {
             final Object v = idx == null ? rs.getObject(TableData.getColumnName(field)) : rs.getObject(idx);
             field.set(target, v);

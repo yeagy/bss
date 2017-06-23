@@ -14,7 +14,7 @@ apply plugin: 'com.bmuschko.nexus'
 apply plugin: 'io.codearte.nexus-staging'
 
 group = 'io.github.yeagy'
-version = '0.5.0'
+version = '0.5.1'
 
 sourceCompatibility = '1.8'
 

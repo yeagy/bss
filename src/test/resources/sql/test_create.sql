@@ -3,5 +3,6 @@ CREATE TABLE test_bean (
   some_long BIGINT NOT NULL,
   some_int INTEGER NOT NULL,
   some_string VARCHAR,
-  some_dtm TIMESTAMP
+  some_dtm TIMESTAMP,
+  some_enum VARCHAR
 )

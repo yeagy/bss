@@ -15,7 +15,7 @@ This library can enhance the JDBC experience to one that's bearable. Near decent
  * null-safe primitive set methods!
  * java 8 time set methods
  * automagic create/set array methods!
- * IN clause support with array simulation!!! (for DBs that don't support arrays)
+ * IN clause support with array simulation!!! (for DBs that don't support arrays, like MySQL)
 
 [**BetterResultSet**](https://github.com/yeagy/bss/wiki/BetterResultSet)
  * null-safe primitive get methods!
@@ -45,6 +45,6 @@ Check out the [wiki](https://github.com/yeagy/bss/wiki) for basic usage examples
 <dependency>
   <groupId>io.github.yeagy</groupId>
   <artifactId>bss</artifactId>
-  <version>0.5.0</version>
+  <version>0.5.1</version>
 </dependency>
 ```

@@ -24,6 +24,8 @@ public class BetterSqlSupportTest {
     private static Server server;
     private static Connection connection;
 
+    private static final ResultMapping<TestBean> TEST_BEAN_RESULT_MAPPING = rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0, TestBean.Status.valueOf(rs.getString("some_enum")));
+
     @BeforeClass
     public static void setUpClass() throws Exception {
         server = Server.createTcpServer().start();
@@ -53,9 +55,8 @@ public class BetterSqlSupportTest {
     @Test
     public void testSelectList() throws Exception {
         truncateAndInsert();
-        String select = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key > :test_key";
-        final List<TestBean> testBeans = SQL_SUPPORT.queryList(connection, select, ps -> ps.setLong("test_key", 1),
-                rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0));
+        String select = "SELECT test_key, some_long, some_int, some_string, some_dtm, some_enum FROM test_bean WHERE test_key > :test_key";
+        final List<TestBean> testBeans = SQL_SUPPORT.queryList(connection, select, ps -> ps.setLong("test_key", 1), TEST_BEAN_RESULT_MAPPING);
         assertNotNull(testBeans);
         assertThat(testBeans, not(empty()));
         testBeans.forEach(bean -> assertThat(bean.getTestKey(), greaterThan(1L)));
@@ -64,9 +65,8 @@ public class BetterSqlSupportTest {
     @Test
     public void testSelectListIn() throws Exception {
         truncateAndInsert();
-        String select = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key IN (:test_keys)";
-        final List<TestBean> testBeans = SQL_SUPPORT.queryList(connection, select, ps -> ps.setArray("test_keys", Arrays.asList(2L, 3L, 4L, 5L)),
-                rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0));
+        String select = "SELECT test_key, some_long, some_int, some_string, some_dtm, some_enum FROM test_bean WHERE test_key IN (:test_keys)";
+        final List<TestBean> testBeans = SQL_SUPPORT.queryList(connection, select, ps -> ps.setArray("test_keys", Arrays.asList(2L, 3L, 4L, 5L)), TEST_BEAN_RESULT_MAPPING);
         assertNotNull(testBeans);
         assertThat(testBeans, not(empty()));
         testBeans.forEach(bean -> assertThat(bean.getTestKey(), greaterThan(1L)));
@@ -75,10 +75,8 @@ public class BetterSqlSupportTest {
     @Test
     public void testSelectMap() throws Exception {
         truncateAndInsert();
-        String select = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key > :test_key";
-        final Map<Long, TestBean> testBeans = SQL_SUPPORT.queryMap(connection, select, ps -> ps.setLong("test_key", 1),
-                rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0),
-                rs -> rs.getLong("test_key"));
+        String select = "SELECT test_key, some_long, some_int, some_string, some_dtm, some_enum FROM test_bean WHERE test_key > :test_key";
+        final Map<Long, TestBean> testBeans = SQL_SUPPORT.queryMap(connection, select, ps -> ps.setLong("test_key", 1), TEST_BEAN_RESULT_MAPPING, rs -> rs.getLong("test_key"));
         assertNotNull(testBeans);
         assertThat(testBeans.keySet().size(), equalTo(4));
         testBeans.keySet().forEach(key -> assertThat(key, greaterThan(1L)));
@@ -87,10 +85,8 @@ public class BetterSqlSupportTest {
     @Test
     public void testSelectMultiMap() throws Exception {
         truncateAndInsert();
-        String select = "SELECT test_key, some_long, some_int, some_string, some_dtm FROM test_bean WHERE test_key > :test_key";
-        final Map<Integer, List<TestBean>> testBeans = SQL_SUPPORT.queryMultiMap(connection, select, ps -> ps.setLong("test_key", 1),
-                rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0),
-                rs -> rs.getInt("some_int"));
+        String select = "SELECT test_key, some_long, some_int, some_string, some_dtm, some_enum FROM test_bean WHERE test_key > :test_key";
+        final Map<Integer, List<TestBean>> testBeans = SQL_SUPPORT.queryMultiMap(connection, select, ps -> ps.setLong("test_key", 1), TEST_BEAN_RESULT_MAPPING, rs -> rs.getInt("some_int"));
         assertNotNull(testBeans);
         assertThat(testBeans.keySet().size(), equalTo(3));
         testBeans.keySet().forEach(key -> assertThat(key, greaterThan(1)));
@@ -101,37 +97,37 @@ public class BetterSqlSupportTest {
     public void testFull() {
         final Timestamp now = Timestamp.from(Instant.now());
 
-        String insert = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm) VALUES (:some_long, :some_int, :some_string, :some_dtm)";
+        String insert = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm, some_enum) VALUES (:some_long, :some_int, :some_string, :some_dtm, :some_enum)";
         final Long key = SQL_SUPPORT.insert(connection, insert, ps -> {
             ps.setLong("some_long", Long.MAX_VALUE);
             ps.setInt("some_int", Integer.MAX_VALUE);
             ps.setString("some_string", "test string");
             ps.setTimestamp("some_dtm", now);
+            ps.setString("some_enum", TestBean.Status.OFF.name());
         });
         assertNotNull(key);
         assertThat(key, not(equalTo(0)));
 
         String select = "SELECT * FROM test_bean WHERE test_key = :test_key";
-        final TestBean bean = SQL_SUPPORT.query(connection, select, ps -> ps.setLong("test_key", key),
-                rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0));
+        final TestBean bean = SQL_SUPPORT.query(connection, select, ps -> ps.setLong("test_key", key), TEST_BEAN_RESULT_MAPPING);
         assertNotNull(bean);
         assertThat(bean.getSomeLong(), equalTo(Long.MAX_VALUE));
         assertThat(bean.getSomeInt(), equalTo(Integer.MAX_VALUE));
         assertThat(bean.getSomeString(), equalTo("test string"));
         assertThat(bean.getSomeDtm(), equalTo(now));
 
-        String update = "UPDATE test_bean SET some_long = :some_long, some_int = :some_int, some_string = :some_string, some_dtm = :some_dtm WHERE test_key = :test_key";
+        String update = "UPDATE test_bean SET some_long = :some_long, some_int = :some_int, some_string = :some_string, some_dtm = :some_dtm, some_enum = :some_enum WHERE test_key = :test_key";
         final int rowsUpdated = SQL_SUPPORT.update(connection, update, ps -> {
             ps.setLong("some_long", bean.getSomeLong());
             ps.setInt("some_int", bean.getSomeInt());
             ps.setString("some_string", "changed string");
             ps.setTimestamp("some_dtm", bean.getSomeDtm());
             ps.setLong("test_key", key);
+            ps.setString("some_enum", bean.getSomeEnum().name());
         });
         assertThat(rowsUpdated, equalTo(1));
 
-        final TestBean updateBean = SQL_SUPPORT.query(connection, select, ps -> ps.setLong("test_key", key),
-                rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0));
+        final TestBean updateBean = SQL_SUPPORT.query(connection, select, ps -> ps.setLong("test_key", key), TEST_BEAN_RESULT_MAPPING);
         assertNotNull(updateBean);
         assertThat(updateBean.getSomeString(), equalTo("changed string"));
 
@@ -139,8 +135,7 @@ public class BetterSqlSupportTest {
         final int rowsDeleted = SQL_SUPPORT.update(connection, delete, ps -> ps.setLong("test_key", key));
         assertThat(rowsDeleted, equalTo(1));
 
-        final TestBean deleteBean = SQL_SUPPORT.query(connection, select, ps -> ps.setLong("test_key", key),
-                rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0));
+        final TestBean deleteBean = SQL_SUPPORT.query(connection, select, ps -> ps.setLong("test_key", key), TEST_BEAN_RESULT_MAPPING);
         assertNull(deleteBean);
     }
 
@@ -148,13 +143,14 @@ public class BetterSqlSupportTest {
     public void testFullBuilder() {
         final Timestamp now = Timestamp.from(Instant.now());
 
-        String insert = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm) VALUES (:some_long, :some_int, :some_string, :some_dtm)";
+        String insert = "INSERT INTO test_bean (some_long, some_int, some_string, some_dtm, some_enum) VALUES (:some_long, :some_int, :some_string, :some_dtm, :some_enum)";
         final Long key = SQL_SUPPORT.builder(insert)
                 .bind(ps -> {
                     ps.setLong("some_long", Long.MAX_VALUE);
                     ps.setInt("some_int", Integer.MAX_VALUE);
                     ps.setString("some_string", "test string");
                     ps.setTimestamp("some_dtm", now);
+                    ps.setString("some_enum", TestBean.Status.ON.name());
                 })
                 .insert(connection);
         assertNotNull(key);
@@ -163,7 +159,7 @@ public class BetterSqlSupportTest {
         String select = "SELECT * FROM test_bean WHERE test_key = :test_key";
         final TestBean bean = SQL_SUPPORT.builder(select)
                 .bind(ps -> ps.setLong("test_key", key))
-                .mapResult(rs  -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0))
+                .mapResult(TEST_BEAN_RESULT_MAPPING)
                 .query(connection);
         assertNotNull(bean);
         assertThat(bean.getSomeLong(), equalTo(Long.MAX_VALUE));
@@ -171,7 +167,7 @@ public class BetterSqlSupportTest {
         assertThat(bean.getSomeString(), equalTo("test string"));
         assertThat(bean.getSomeDtm(), equalTo(now));
 
-        String update = "UPDATE test_bean SET some_long = :some_long, some_int = :some_int, some_string = :some_string, some_dtm = :some_dtm WHERE test_key = :test_key";
+        String update = "UPDATE test_bean SET some_long = :some_long, some_int = :some_int, some_string = :some_string, some_dtm = :some_dtm, some_enum = :some_enum WHERE test_key = :test_key";
         final int rowsUpdated = SQL_SUPPORT.builder(update)
                 .bind(ps -> {
                     ps.setLong("some_long", bean.getSomeLong());
@@ -179,13 +175,14 @@ public class BetterSqlSupportTest {
                     ps.setString("some_string", "changed string");
                     ps.setTimestamp("some_dtm", bean.getSomeDtm());
                     ps.setLong("test_key", key);
+                    ps.setString("some_enum", bean.getSomeEnum().name());
                 })
                 .update(connection);
         assertThat(rowsUpdated, equalTo(1));
 
         final TestBean updateBean = SQL_SUPPORT.builder(select)
                 .bind(ps -> ps.setLong("test_key", key))
-                .mapResult(rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0))
+                .mapResult(TEST_BEAN_RESULT_MAPPING)
                 .query(connection);
         assertNotNull(updateBean);
         assertThat(updateBean.getSomeString(), equalTo("changed string"));
@@ -198,7 +195,7 @@ public class BetterSqlSupportTest {
 
         final TestBean deleteBean = SQL_SUPPORT.builder(select)
                 .bind(ps -> ps.setLong("test_key", key))
-                .mapResult(rs -> new TestBean(rs.getLong("test_key"), rs.getLong("some_long"), rs.getInt("some_int"), rs.getString("some_string"), rs.getTimestamp("some_dtm"), 0.0))
+                .mapResult(TEST_BEAN_RESULT_MAPPING)
                 .query(connection);
         assertNull(deleteBean);
     }
